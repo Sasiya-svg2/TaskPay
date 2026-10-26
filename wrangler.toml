@@ -1,0 +1,18 @@
+
+name = "taskpay"
+main = "src/worker.js"
+compatibility_date = "2026-10-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "taskpay-db"
+database_id = "d876a03a-ef42-4742-9506-3203202c0b9a"
+migrations_dir = "migrations"
+
+[vars]
+BOT_USERNAME = "task_v1_bot"
