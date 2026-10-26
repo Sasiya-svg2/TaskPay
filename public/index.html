@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#fff8ed">
+  <title>TaskPay</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --orange: #ff7a24;
+      --yellow: #ffd34e;
+      --red: #ef4444;
+      --cream: #fff8ed;
+      --ink: #29231f;
+      --muted: #8d8279;
+      --card: #ffffff;
+      --line: #f1e7da;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--cream); color: var(--ink);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding-bottom: 88px;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; border: 0; }
+    .loading {
+      position: fixed; inset: 0; z-index: 99; background: var(--cream);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; transition: opacity .4s;
+    }
+    .logo {
+      width: 78px; height: 78px; border-radius: 25px;
+      background: linear-gradient(135deg, var(--yellow), var(--orange));
+      display: grid; place-items: center; color: white; font-size: 34px;
+      font-weight: 900; box-shadow: 0 12px 35px #ff7a2440;
+      animation: bounce 1.2s infinite;
+    }
+    .loading h1 { margin: 18px 0 5px; }
+    .loading p { color: var(--muted); font-size: 13px; }
+    .spinner {
+      width: 26px; height: 26px; margin-top: 14px;
+      border: 3px solid #ffe0c7; border-top-color: var(--orange);
+      border-radius: 50%; animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes bounce { 50% { transform: translateY(-7px); } }
+    .app { max-width: 540px; margin: auto; padding: 18px 16px; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; }
+    .brand { font-size: 23px; font-weight: 900; letter-spacing: -.8px; }
+    .brand span { color: var(--orange); }
+    .avatar {
+      width: 42px; height: 42px; display: grid; place-items: center;
+      border-radius: 15px; background: #ffe3c8; font-size: 21px;
+    }
+    .greeting { margin-top: 25px; }
+    .greeting small { color: var(--muted); }
+    .greeting h2 { margin: 5px 0 15px; font-size: 25px; }
+    .balance {
+      border-radius: 25px; padding: 22px; color: white; overflow: hidden;
+      position: relative;
+      background: linear-gradient(125deg, #ff9d32, #ff6928 65%, #ef4444);
+      box-shadow: 0 12px 28px #ff7a2430;
+    }
+    .balance:after {
+      content: "$"; position: absolute; right: 15px; top: -22px;
+      font-size: 140px; font-weight: 900; opacity: .12;
+    }
+    .balance small { opacity: .9; }
+    .amount { font-size: 38px; font-weight: 900; margin: 8px 0 17px; }
+    .balance-row { display: flex; gap: 10px; }
+    .balance-stat {
+      background: #ffffff20; padding: 10px 12px; border-radius: 13px;
+      flex: 1; font-size: 12px;
+    }
+    .balance-stat b { display: block; font-size: 15px; margin-top: 4px; }
+    .section-title {
+      display: flex; justify-content: space-between; align-items: center;
+      margin: 25px 0 13px;
+    }
+    .section-title h3 { margin: 0; font-size: 18px; }
+    .link { color: var(--orange); background: none; font-weight: 800; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .feature {
+      background: var(--card); border: 1px solid var(--line);
+      padding: 16px; border-radius: 20px; text-align: left;
+      box-shadow: 0 5px 18px #40240a08;
+    }
+    .feature .icon {
+      width: 43px; height: 43px; display: grid; place-items: center;
+      border-radius: 14px; background: #fff0d9; font-size: 22px;
+      margin-bottom: 12px;
+    }
+    .feature h4 { margin: 0 0 5px; font-size: 15px; }
+    .feature p { margin: 0; font-size: 12px; color: var(--muted); }
+    .reward-banner {
+      background: #fff0c5; border: 1px solid #ffe3a0; padding: 17px;
+      border-radius: 19px; display: flex; justify-content: space-between;
+      align-items: center; gap: 12px;
+    }
+    .reward-banner h4 { margin: 0 0 5px; }
+    .reward-banner p { margin: 0; font-size: 12px; color: #796344; }
+    .primary {
+      background: var(--orange); color: white; border-radius: 13px;
+      padding: 12px 16px; font-weight: 800;
+    }
+    .primary:disabled { opacity: .5; cursor: default; }
+    .page { display: none; }
+    .page.active { display: block; animation: appear .2s ease; }
+    @keyframes appear { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+    .list-card {
+      background: white; border: 1px solid var(--line); border-radius: 18px;
+      padding: 16px; margin-bottom: 12px;
+    }
+    .list-card h4 { margin: 0 0 7px; }
+    .list-card p { color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .list-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .pill {
+      display: inline-block; background: #fff0d9; color: #a84a08;
+      padding: 6px 10px; border-radius: 20px; font-size: 12px; font-weight: 800;
+    }
+    .input {
+      width: 100%; border: 1px solid var(--line); background: white;
+      border-radius: 13px; padding: 13px; margin: 7px 0 13px; outline-color: var(--orange);
+    }
+    .form-label { display: block; font-size: 13px; font-weight: 800; margin-top: 14px; }
+    .notice { color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .nav {
+      position: fixed; z-index: 10; bottom: 0; left: 0; right: 0;
+      display: flex; justify-content: space-around; padding: 10px 4px calc(10px + env(safe-area-inset-bottom));
+      background: #fff; border-top: 1px solid var(--line);
+    }
+    .nav button {
+      background: transparent; color: #9c9187; font-size: 11px;
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      min-width: 54px; font-weight: 700;
+    }
+    .nav button span { font-size: 20px; }
+    .nav button.active { color: var(--orange); }
+    .message { font-size: 13px; margin: 12px 0; color: #9c341d; }
+    .empty { text-align: center; padding: 25px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="loading" id="loading">
+    <div class="logo">T</div>
+    <h1>Task<span style="color:#ff7a24">Pay</span></h1>
+    <p>Small tasks. Real rewards.</p>
+    <div class="spinner"></div>
+  </div>
+
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">Task<span>Pay</span></div>
+      <div class="avatar">👋</div>
+    </header>
+
+    <section class="page active" id="home">
+      <div class="greeting">
+        <small id="welcome">WELCOME BACK</small>
+        <h2>Let's earn today! ✨</h2>
+      </div>
+      <div class="balance">
+        <small>Available Balance</small>
+        <div class="amount" id="balance">$0.000</div>
+        <div class="balance-row">
+          <div class="balance-stat">Total Earned<b id="earned">$0.000</b></div>
+          <div class="balance-stat">Referrals<b id="referrals">0</b></div>
+        </div>
+      </div>
+
+      <div class="section-title"><h3>Rewards Hub</h3></div>
+      <div class="grid">
+        <button class="feature" onclick="showPage('tasks')">
+          <div class="icon">🎯</div><h4>Available Tasks</h4><p>Earn $0.02 per task</p>
+        </button>
+        <button class="feature" onclick="showPage('referrals')">
+          <div class="icon">👥</div><h4>Invite Friends</h4><p>Earn $0.01 per referral</p>
+        </button>
+        <button class="feature" onclick="claimDaily()">
+          <div class="icon">🎁</div><h4>Daily Reward</h4><p>Claim $0.015 daily</p>
+        </button>
+        <button class="feature" onclick="showPage('wallet')">
+          <div class="icon">💳</div><h4>My Wallet</h4><p>Minimum withdrawal $5</p>
+        </button>
+      </div>
+
+      <div class="section-title"><h3>Daily Check-in</h3></div>
+      <div class="reward-banner">
+        <div><h4>Claim Your Daily Bonus</h4><p>Come back every day for a reward.</p></div>
+        <button class="primary" id="dailyButton" onclick="claimDaily()">Claim</button>
+      </div>
+      <p class="notice">Task rewards are credited only after admin approval. Ad rewards will be available after Monetag integration.</p>
+    </section>
+
+    <section class="page" id="tasks">
+      <div class="section-title"><h3>Available Tasks</h3><button class="link" onclick="loadTasks()">Refresh</button></div>
+      <div id="taskList"><div class="empty">Loading tasks...</div></div>
+    </section>
+
+    <section class="page" id="referrals">
+      <div class="section-title"><h3>Invite & Earn</h3></div>
+      <div class="list-card">
+        <div class="icon">👥</div>
+        <h4>Earn $0.01 per referral</h4>
+        <p>Invite friends using your personal Telegram link.</p>
+        <input class="input" id="referralLink" readonly>
+        <button class="primary" onclick="copyReferral()">Copy Invite Link</button>
+        <p class="notice">Referral rewards must be protected against self-referrals and fake accounts.</p>
+      </div>
+    </section>
+
+    <section class="page" id="wallet">
+      <div class="section-title"><h3>My Wallet</h3></div>
+      <div class="list-card">
+        <small>Available Balance</small>
+        <div class="amount" id="walletBalance">$0.000</div>
+        <p>Minimum withdrawal: $5.00</p>
+        <label class="form-label" for="withdrawAmount">Withdrawal Amount (USD)</label>
+        <input class="input" id="withdrawAmount" type="number" min="5" step="0.001" placeholder="5.00">
+        <label class="form-label" for="binanceId">Binance ID</label>
+        <input class="input" id="binanceId" maxlength="100" placeholder="Enter your Binance ID">
+        <button class="primary" onclick="withdraw()">Submit Withdrawal Request</button>
+        <p class="notice">Your request will be reviewed by the admin. This app does not automatically send cryptocurrency.</p>
+        <div id="walletMessage" class="message"></div>
+      </div>
+    </section>
+
+    <section class="page" id="profile">
+      <div class="section-title"><h3>My Account</h3></div>
+      <div class="list-card">
+        <h4 id="profileName">Telegram User</h4>
+        <p id="profileId"></p>
+        <p class="notice">TaskPay rewards and withdrawals are subject to review.</p>
+      </div>
+    </section>
+  </main>
+
+  <nav class="nav">
+    <button class="active" data-page="home" onclick="showPage('home',this)"><span>🏠</span>Home</button>
+    <button data-page="tasks" onclick="showPage('tasks',this)"><span>🎯</span>Tasks</button>
+    <button data-page="referrals" onclick="showPage('referrals',this)"><span>👥</span>Friends</button>
+    <button data-page="wallet" onclick="showPage('wallet',this)"><span>💳</span>Wallet</button>
+    <button data-page="profile" onclick="showPage('profile',this)"><span>👤</span>Profile</button>
+  </nav>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    tg?.ready();
+    tg?.expand();
+
+    const API = "/api";
+    const telegramUser = tg?.initDataUnsafe?.user;
+    const initData = tg?.initData || "";
+    let me = null;
+
+    function money(value) {
+      return "$" + Number(value || 0).toFixed(3);
+    }
+
+    async function api(path, options = {}) {
+      const response = await fetch(API + path, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          "X-Telegram-Init-Data": initData,
+          ...(options.headers || {})
+        }
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Request failed.");
+      return data;
+    }
+
+    function showPage(id, button) {
+      document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+      document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
+      const navButton = button || document.querySelector(`[data-page="${id}"]`);
+      navButton?.classList.add("active");
+      if (id === "tasks") loadTasks();
+      if (id === "wallet") refreshMe();
+    }
+
+    async function refreshMe() {
+      try {
+        me = await api("/me");
+        document.getElementById("welcome").textContent =
+          "WELCOME, " + (me.first_name || telegramUser?.first_name || "FRIEND").toUpperCase();
+        document.getElementById("balance").textContent = money(me.balance);
+        document.getElementById("walletBalance").textContent = money(me.balance);
+        document.getElementById("earned").textContent = money(me.total_earned);
+        document.getElementById("referrals").textContent = me.referrals || 0;
+        document.getElementById("profileName").textContent =
+          me.first_name || telegramUser?.first_name || "Telegram User";
+        document.getElementById("profileId").textContent = "Telegram ID: " + me.telegram_id;
+        document.getElementById("dailyButton").disabled =
+          me.last_daily_claim === new Date().toISOString().slice(0, 10);
+        const bot = "task_v1_bot";
+        document.getElementById("referralLink").value =
+          `https://t.me/${bot}?startapp=ref_${me.telegram_id}`;
+      } catch (error) {
+        showMessage(error.message);
+      }
+    }
+
+    async function loadTasks() {
+      const list = document.getElementById("taskList");
+      list.innerHTML = '<div class="empty">Loading tasks...</div>';
+      try {
+        const tasks = await api("/tasks");
+        if (!tasks.length) {
+          list.innerHTML = '<div class="empty">No tasks available right now.</div>';
+          return;
+        }
+        list.innerHTML = tasks.map(task => {
+          const status = task.claim_status;
+          const disabled = status ? "disabled" : "";
+          const label = status === "pending" ? "Pending Review" :
+            status === "approved" ? "Completed" :
+            status === "rejected" ? "Rejected" : "Submit Task";
+          return `<article class="list-card">
+            <div class="list-row"><h4>${escapeHtml(task.title)}</h4><span class="pill">+$${Number(task.reward).toFixed(3)}</span></div>
+            <p>${escapeHtml(task.description || "Complete this task and submit it for review.")}</p>
+            ${task.url ? `<p><a href="${safeUrl(task.url)}" target="_blank" rel="noopener">Open Task ↗</a></p>` : ""}
+            <label class="form-label">Proof (optional)</label>
+            <input class="input" id="proof-${task.id}" placeholder="Enter your proof or username">
+            <button class="primary" ${disabled} onclick="submitTask(${task.id})">${label}</button>
+          </article>`;
+        }).join("");
+      } catch (error) {
+        list.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, c =>
+        ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    }
+
+    function safeUrl(value) {
+      try {
+        const u = new URL(value);
+        return ["https:", "http:"].includes(u.protocol) ? u.href : "#";
+      } catch { return "#"; }
+    }
+
+    async function submitTask(taskId) {
+      const proof = document.getElementById(`proof-${taskId}`).value.trim();
+      try {
+        await api("/task-claim", {
+          method: "POST",
+          body: JSON.stringify({ taskId, proof })
+        });
+        alert("Task submitted. Waiting for admin approval.");
+        loadTasks();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    async function claimDaily() {
+      const button = document.getElementById("dailyButton");
+      button.disabled = true;
+      try {
+        await api("/daily-claim", { method: "POST", body: "{}" });
+        alert("Daily reward claimed: $0.015");
+        await refreshMe();
+      } catch (error) {
+        alert(error.message);
+        button.disabled = false;
+      }
+    }
+
+    async function withdraw() {
+      const amount = Number(document.getElementById("withdrawAmount").value);
+      const binanceId = document.getElementById("binanceId").value.trim();
+      const output = document.getElementById("walletMessage");
+      output.textContent = "";
+      try {
+        await api("/withdraw", {
+          method: "POST",
+          body: JSON.stringify({ amount, binanceId })
+        });
+        output.textContent = "Withdrawal request submitted for admin review.";
+        await refreshMe();
+      } catch (error) {
+        output.textContent = error.message;
+      }
+    }
+
+    async function copyReferral() {
+      const link = document.getElementById("referralLink").value;
+      try {
+        await navigator.clipboard.writeText(link);
+        alert("Invite link copied!");
+      } catch {
+        document.getElementById("referralLink").select();
+        document.execCommand("copy");
+        alert("Invite link copied!");
+      }
+    }
+
+    function showMessage(message) {
+      console.error(message);
+    }
+
+    async function start() {
+      if (!tg || !initData || !telegramUser) {
+        document.getElementById("loading").innerHTML =
+          '<h2>Open TaskPay in Telegram</h2><p>Please launch this Mini App from @task_v1_bot.</p>';
+        return;
+      }
+      await refreshMe();
+      document.getElementById("loading").style.opacity = "0";
+      setTimeout(() => document.getElementById("loading").remove(), 450);
+    }
+
+    start();
+  </script>
+</body>
+</html>
