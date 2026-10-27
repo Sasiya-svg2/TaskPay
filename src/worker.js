@@ -1,3 +1,4 @@
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -37,78 +38,95 @@ async function telegramRequest(env, method, body) {
   return result.result;
 }
 
+// Verify Telegram Mini App initData using Telegram's HMAC-SHA-256 method.
 async function verifyTelegramInitData(initData, botToken) {
   if (!initData || !botToken) return null;
 
-  const params = new URLSearchParams(initData);
-  const receivedHash = params.get("hash");
-
-  if (!receivedHash) return null;
-
-  params.delete("hash");
-
-  const authDate = Number(params.get("auth_date"));
-  const now = Math.floor(Date.now() / 1000);
-
-  if (!authDate || authDate > now + 60 || now - authDate > 86400) {
-    return null;
-  }
-
-  const checkString = [...params.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, value]) => `${key}=${value}`)
-    .join("\n");
-
-  const encoder = new TextEncoder();
-
-  const tokenKey = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(botToken),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-
-  const secret = await crypto.subtle.sign(
-    "HMAC",
-    tokenKey,
-    encoder.encode("WebAppData")
-  );
-
-  const hmacKey = await crypto.subtle.importKey(
-    "raw",
-    secret,
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-
-  const signature = await crypto.subtle.sign(
-    "HMAC",
-    hmacKey,
-    encoder.encode(checkString)
-  );
-
-  const actualHash = [...new Uint8Array(signature)]
-    .map(b => b.toString(16).padStart(2, "0"))
-    .join("");
-
-  if (actualHash.length !== receivedHash.length) return null;
-
-  let mismatch = 0;
-
-  for (let i = 0; i < actualHash.length; i++) {
-    mismatch |= actualHash.charCodeAt(i) ^ receivedHash.charCodeAt(i);
-  }
-
-  if (mismatch !== 0) return null;
-
   try {
+    const params = new URLSearchParams(initData);
+    const receivedHash = params.get("hash");
+
+    if (!receivedHash || !/^[a-f0-9]{64}$/i.test(receivedHash)) {
+      return null;
+    }
+
+    params.delete("hash");
+
+    const authDate = Number(params.get("auth_date"));
+    const now = Math.floor(Date.now() / 1000);
+
+    if (
+      !Number.isFinite(authDate) ||
+      !authDate ||
+      authDate > now + 60 ||
+      now - authDate > 86400
+    ) {
+      return null;
+    }
+
+    const checkString = [...params.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => `${key}=${value}`)
+      .join("\n");
+
+    const encoder = new TextEncoder();
+
+    // Telegram secret key = HMAC-SHA-256("WebAppData", botToken).
+    const secretKey = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode("WebAppData"),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+
+    const secret = await crypto.subtle.sign(
+      "HMAC",
+      secretKey,
+      encoder.encode(botToken)
+    );
+
+    const hmacKey = await crypto.subtle.importKey(
+      "raw",
+      secret,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+
+    const signature = await crypto.subtle.sign(
+      "HMAC",
+      hmacKey,
+      encoder.encode(checkString)
+    );
+
+    const actualHash = [...new Uint8Array(signature)]
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    if (actualHash.length !== receivedHash.length) {
+      return null;
+    }
+
+    let mismatch = 0;
+
+    for (let i = 0; i < actualHash.length; i++) {
+      mismatch |=
+        actualHash.charCodeAt(i) ^ receivedHash.charCodeAt(i);
+    }
+
+    if (mismatch !== 0) return null;
+
+    const user = JSON.parse(params.get("user") || "null");
+
+    if (!user?.id) return null;
+
     return {
-      user: JSON.parse(params.get("user") || "null"),
+      user,
       startParam: params.get("start_param") || ""
     };
-  } catch {
+  } catch (error) {
+    console.error("Telegram initData verification failed:", error);
     return null;
   }
 }
@@ -915,7 +933,6 @@ async function handleApi(request, env, url) {
     const targetUrl = String(body.targetUrl || "").trim();
 
     const memberCount = Number(body.memberCount);
-
     const taxId = String(body.taxId || "").trim();
     const paymentTxId = String(body.paymentTxId || "").trim();
 
