@@ -362,9 +362,10 @@ async function handleApi(request, env, url) {
       const taskUrl = String(body.url || "").trim();
       const reward = Number(body.reward ?? 0.02);
 
-      const taskType = ["link", "channel", "group"].includes(
-        body.task_type
-      ) ? body.task_type : "link";
+      // Only Telegram channel/group membership tasks can be auto-verified.
+      const taskType = ["channel", "group"].includes(body.task_type)
+        ? body.task_type
+        : "";
 
       const chatId = String(body.chat_id || "").trim();
 
@@ -380,11 +381,11 @@ async function handleApi(request, env, url) {
         );
       }
 
-      if (taskType !== "link" && !chatId) {
+      if (!taskType || !chatId) {
         return json(
           {
             error:
-              "Enter the Telegram channel/group username or chat ID."
+              "Only channel/group join tasks are supported. Select channel or group and enter its Telegram username or chat ID."
           },
           400
         );
@@ -544,6 +545,25 @@ async function handleApi(request, env, url) {
       }
 
       if (action === "approve") {
+        const targetUrl = taskRequest.target_url;
+        const usernameMatch = targetUrl.match(
+          /t\.me\/([A-Za-z0-9_]+)/i
+        );
+
+        const chatId = usernameMatch
+          ? "@" + usernameMatch[1]
+          : "";
+
+        if (!chatId) {
+          return json(
+            {
+              error:
+                "This task cannot be approved for automatic rewards. Use a public Telegram channel/group link with a username, so membership can be verified."
+            },
+            400
+          );
+        }
+
         const updated = await db.prepare(`
           UPDATE task_requests
           SET status = 'approved',
@@ -555,16 +575,7 @@ async function handleApi(request, env, url) {
           return json({ error: "Request already reviewed." }, 409);
         }
 
-        const targetUrl = taskRequest.target_url;
-        const usernameMatch = targetUrl.match(
-          /t\.me\/([A-Za-z0-9_]+)/i
-        );
-
-        const chatId = usernameMatch
-          ? "@" + usernameMatch[1]
-          : "";
-
-        const taskType = chatId ? "channel" : "link";
+        const taskType = "channel";
 
         await db.prepare(`
           INSERT INTO tasks
@@ -847,40 +858,16 @@ async function handleApi(request, env, url) {
       return json({ error: "Task is unavailable." }, 404);
     }
 
-    // Regular URL tasks require admin review.
-    if (
-      !["channel", "group"].includes(task.task_type) ||
-      !task.chat_id
-    ) {
-      const proof = String(body.proof || "").trim();
-
-      try {
-        await db.prepare(`
-          INSERT INTO task_claims
-            (telegram_id, task_id, proof)
-          VALUES (?, ?, ?)
-        `).bind(telegramId, taskId, proof).run();
-      } catch {
-        return json(
-          { error: "You have already submitted this task." },
-          409
-        );
-      }
-
-      try {
-        await notifyAdmin(
-          env,
-          `📝 Task submission\n` +
-          `User ID: ${telegramId}\n` +
-          `Task: ${task.title}\n` +
-          `Proof: ${proof || "Not provided"}\n` +
-          "Review this submission in the TaskPay Admin Panel."
-        );
-      } catch (error) {
-        console.error("Task notification failed:", error);
-      }
-
-      return json({ ok: true, status: "pending" });
+    // Only Telegram channel/group tasks are eligible for automatic claims.
+    // Never send claims to admin review or credit rewards for unverified tasks.
+    if (!["channel", "group"].includes(task.task_type) || !task.chat_id) {
+      return json(
+        {
+          error:
+            "This task cannot be auto-verified. Only Telegram channel/group join tasks are supported."
+        },
+        400
+      );
     }
 
     // Verify channel/group membership using Telegram.
