@@ -36,7 +36,7 @@ a{color:var(--gold);overflow-wrap:anywhere}.notice{background:#252018;border:1px
 
 <section class="page active" id="home">
 <div class="small">WELCOME TO TASKPAY</div><h2 id="greeting">Let's earn today.</h2>
-<div class="balance"><div class="label">Available Balance</div><div class="amount" id="balance">$0.000</div><div class="stats"><div class="stat">Total Earned<b id="earned">$0.000</b></div><div class="stat">Referrals<b id="referrals">0</b></div></div></div>
+<div class="balance"><div class="label">Available Balance</div><div class="amount" id="balance">$0.000</div><div class="stats"><div class="stat">Total Earned<b id="earned">$0.000</b></div><div class="stat">Referrals<b id="referralCount">0</b></div></div></div>
 <div class="section-head"><h3>Rewards Hub</h3></div>
 <div class="grid">
 <button class="card feature" onclick="showPage('tasks')"><div class="icon">🎯</div><b>Available Tasks</b><span>Verify and earn rewards</span></button>
@@ -185,7 +185,7 @@ async function refreshMe(){
   document.getElementById("balance").textContent=money(me.balance);
   document.getElementById("walletBalance").textContent=money(me.balance);
   document.getElementById("earned").textContent=money(me.total_earned);
-  document.getElementById("referrals").textContent=me.referrals||0;
+  document.getElementById("referralCount").textContent=me.referrals||0;
 
   document.getElementById("friendsCount").textContent=Number(me.referrals||0);
   document.getElementById("verifiedFriends").textContent=Number(me.verifiedReferrals||0);
@@ -226,20 +226,21 @@ async function loadTasks(){
     }
     list.innerHTML=tasks.map(t=>{
       const s=t.claim_status;
-      const done=s==="approved",pending=s==="pending",rejected=s==="rejected";
-      const label=done?"Completed":pending?"Pending Review":rejected?"Rejected":(["channel","group"].includes(t.task_type)?"Verify & Claim":"Submit Task");
-      return `<article class="card"><div class="row"><h3>${esc(t.title)}</h3><span class="pill">+${money(t.reward)}</span></div><p class="muted">${esc(t.description||"Complete this task to earn a reward.")}</p>${t.url?`<p><a href="${safeUrl(t.url)}" target="_blank" rel="noopener">Open Task ↗</a></p>`:""}${["channel","group"].includes(t.task_type)?'<p class="small">Join the channel/group, then tap Verify & Claim.</p>':`<label>Proof (optional)</label><input class="field" id="proof-${t.id}" placeholder="Enter proof or username">`}<div class="row"><span class="status ${done?"done":rejected?"bad":""}">${done?"✓ COMPLETED":pending?"PENDING REVIEW":rejected?"REJECTED":""}</span><button class="btn" ${s?"disabled":""} onclick="claimTask(${t.id},${["channel","group"].includes(t.task_type)})">${label}</button></div></article>`;
+      const done=s==="approved";
+      const canAutoClaim=["channel","group"].includes(t.task_type)&&Boolean(t.chat_id);
+      const label=done?"Completed":canAutoClaim?"Claim Reward":"Unavailable";
+      const statusText=done?"✓ COMPLETED":canAutoClaim?"":"AUTO-CLAIM UNAVAILABLE";
+      return `<article class="card"><div class="row"><h3>${esc(t.title)}</h3><span class="pill">+${money(t.reward)}</span></div><p class="muted">${esc(t.description||"Join the Telegram group/channel to earn this reward.")}</p>${t.url?`<p><a href="${safeUrl(t.url)}" target="_blank" rel="noopener">Open Task ↗</a></p>`:""}${canAutoClaim?'<p class="small">Join the group/channel first, then tap Claim Reward. Your membership will be checked automatically.</p>':'<p class="small">This task cannot be auto-verified. Only Telegram group/channel tasks with a valid chat ID can be claimed.</p>'}<div class="row"><span class="status ${done?"done":""}">${statusText}</span><button class="btn" ${done||!canAutoClaim?"disabled":""} onclick="claimTask(${t.id})">${label}</button></div></article>`;
     }).join("");
   }catch(e){
     list.innerHTML=`<div class="empty">${esc(e.message)}</div>`;
   }
 }
 
-async function claimTask(taskId,autoVerify){
+async function claimTask(taskId){
   try{
-    const proof=document.getElementById("proof-"+taskId)?.value.trim()||"";
-    const r=await api("/task-claim",{method:"POST",body:JSON.stringify({taskId,proof})});
-    alert(r.status==="approved"?`Task completed! ${money(r.reward)} added to your balance.`:"Task submitted for admin review.");
+    const r=await api("/task-claim",{method:"POST",body:JSON.stringify({taskId})});
+    if(r.status==="approved") alert(`Verified! ${money(r.reward)} has been added to your balance.`);
     await refreshMe();
     await loadTasks();
   }catch(e){alert(e.message)}
