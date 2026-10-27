@@ -27,6 +27,7 @@ a{color:var(--gold);overflow-wrap:anywhere}.notice{background:#252018;border:1px
 </head>
 <body>
 <div class="loading" id="loading"><div class="logo">T</div><h2>Task<span style="color:#ff8126">Pay</span></h2><div class="muted">Small tasks. Real rewards.</div><div class="spinner"></div></div>
+
 <main class="app">
 <header><div class="brand">Task<span>Pay</span></div><a class="badge" href="https://t.me/flash_bot_update" target="_blank" rel="noopener">OFFICIAL CHANNEL ↗</a></header>
 
@@ -112,26 +113,218 @@ a{color:var(--gold);overflow-wrap:anywhere}.notice{background:#252018;border:1px
 </nav>
 
 <script>
-const tg=window.Telegram?.WebApp;tg?.ready();tg?.expand();
-const API="/api",telegramUser=tg?.initDataUnsafe?.user,initData=tg?.initData||"";
+const tg=window.Telegram?.WebApp;
+tg?.ready();
+tg?.expand();
+
+const API="/api";
+const telegramUser=tg?.initDataUnsafe?.user;
+const initData=tg?.initData||"";
+
 let me=null,config={botUsername:"task_v1_bot",usdtAddress:""};
+
 function money(v){return "$"+Number(v||0).toFixed(3)}
-async function api(path,options={}){const r=await fetch(API+path,{...options,headers:{"Content-Type":"application/json","X-Telegram-Init-Data":initData,...(options.headers||{})}});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||"Request failed.");return d}
-function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function safeUrl(v){try{const u=new URL(v);return ["https:","http:"].includes(u.protocol)?u.href:"#"}catch{return "#"}}
-function showPage(id,button){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));(button||document.querySelector(`[data-page="${id}"]`))?.classList.add("active");if(id==="tasks")loadTasks();if(id==="wallet")refreshMe()}
-async function refreshMe(){me=await api("/me");document.getElementById("greeting").textContent="Let's earn, "+(me.first_name||"friend")+"!";document.getElementById("balance").textContent=money(me.balance);document.getElementById("walletBalance").textContent=money(me.balance);document.getElementById("earned").textContent=money(me.total_earned);document.getElementById("referrals").textContent=me.referrals||0;document.getElementById("profileName").textContent=me.first_name||"Telegram User";document.getElementById("profileId").textContent="Telegram ID: "+me.telegram_id;document.getElementById("dailyButton").disabled=me.last_daily_claim===new Date().toISOString().slice(0,10);document.getElementById("referralLink").value=`https://t.me/${config.botUsername}?startapp=ref_${me.telegram_id}`}
-async function loadTasks(){const list=document.getElementById("taskList");list.innerHTML='<div class="empty">Loading tasks...</div>';try{const tasks=await api("/tasks");if(!tasks.length){list.innerHTML='<div class="empty">No tasks available right now.</div>';return}list.innerHTML=tasks.map(t=>{const s=t.claim_status;const done=s==="approved",pending=s==="pending",rejected=s==="rejected";const label=done?"Completed":pending?"Pending Review":rejected?"Rejected":(["channel","group"].includes(t.task_type)?"Verify & Claim":"Submit Task");return `<article class="card"><div class="row"><h3>${esc(t.title)}</h3><span class="pill">+${money(t.reward)}</span></div><p class="muted">${esc(t.description||"Complete this task to earn a reward.")}</p>${t.url?`<p><a href="${safeUrl(t.url)}" target="_blank" rel="noopener">Open Task ↗</a></p>`:""}${["channel","group"].includes(t.task_type)?'<p class="small">Join the channel/group, then tap Verify & Claim.</p>':`<label>Proof (optional)</label><input class="field" id="proof-${t.id}" placeholder="Enter proof or username">`}<div class="row"><span class="status ${done?"done":rejected?"bad":""}">${done?"✓ COMPLETED":pending?"PENDING REVIEW":rejected?"REJECTED":""}</span><button class="btn" ${s?"disabled":""} onclick="claimTask(${t.id},${["channel","group"].includes(t.task_type)})">${label}</button></div></article>`}).join("")}catch(e){list.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
-async function claimTask(taskId,autoVerify){try{const proof=document.getElementById("proof-"+taskId)?.value.trim()||"";const r=await api("/task-claim",{method:"POST",body:JSON.stringify({taskId,proof})});alert(r.status==="approved"?`Task completed! ${money(r.reward)} added to your balance.`:"Task submitted for admin review.");await refreshMe();await loadTasks()}catch(e){alert(e.message)}}
-async function claimDaily(){const b=document.getElementById("dailyButton");b.disabled=true;try{await api("/daily-claim",{method:"POST",body:"{}"});alert("Daily reward claimed: $0.015");await refreshMe()}catch(e){alert(e.message);b.disabled=false}}
-async function copyReferral(){const i=document.getElementById("referralLink");try{await navigator.clipboard.writeText(i.value)}catch{i.select();document.execCommand("copy")}alert("Referral link copied!")}
-function shareReferral(){const link=document.getElementById("referralLink").value;const text=encodeURIComponent("Join me on TaskPay and earn rewards! "+link);if(tg?.openTelegramLink)tg.openTelegramLink("https://t.me/share/url?url="+encodeURIComponent(link)+"&text="+encodeURIComponent("Join me on TaskPay and earn rewards!"));else location.href="https://t.me/share/url?url="+encodeURIComponent(link)+"&text="+text}
-function updatePrice(){document.getElementById("requestPrice").textContent=(Number(document.getElementById("memberCount").value)>2000?"$6.00":"$4.00")+" USDT"}
-async function copyPaymentAddress(){const a=document.getElementById("paymentAddress").value;if(!a){alert("Payment address is not configured. Contact Help Center.");return}try{await navigator.clipboard.writeText(a)}catch{document.getElementById("paymentAddress").select();document.execCommand("copy")}alert("Payment address copied. Verify it before sending funds.")}
-async function submitTaskRequest(){const out=document.getElementById("taskRequestMessage");out.textContent="";try{const result=await api("/task-requests",{method:"POST",body:JSON.stringify({title:document.getElementById("taskTitle").value,description:document.getElementById("taskDescription").value,targetUrl:document.getElementById("targetUrl").value,memberCount:Number(document.getElementById("memberCount").value),taxId:document.getElementById("taxId").value,paymentTxId:document.getElementById("paymentTxId").value})});out.textContent=`Request #${result.requestId} submitted. Payment will be reviewed by the admin.`}catch(e){out.textContent=e.message}}
-async function sendHelp(){const out=document.getElementById("helpResult");out.textContent="";try{await api("/help",{method:"POST",body:JSON.stringify({message:document.getElementById("helpMessage").value})});out.textContent="Message sent to the admin. Thank you.";document.getElementById("helpMessage").value=""}catch(e){out.textContent=e.message}}
-async function withdraw(){const output=document.getElementById("walletMessage");output.textContent="";try{await api("/withdraw",{method:"POST",body:JSON.stringify({amount:Number(document.getElementById("withdrawAmount").value),binanceId:document.getElementById("binanceId").value.trim()})});output.textContent="Withdrawal request submitted for review.";await refreshMe()}catch(e){output.textContent=e.message}}
-async function start(){if(!tg||!initData||!telegramUser){document.getElementById("loading").innerHTML='<h2>Open TaskPay in Telegram</h2><p class="muted">Launch this Mini App from @task_v1_bot.</p>';return}try{config=await api("/config");document.getElementById("paymentAddress").value=config.usdtAddress||"";await refreshMe();await loadTasks();document.getElementById("loading").style.opacity="0";setTimeout(()=>document.getElementById("loading")?.remove(),350)}catch(e){document.getElementById("loading").innerHTML=`<h2>TaskPay could not load</h2><p class="muted">${esc(e.message)}</p>`}}
+
+async function api(path,options={}){
+  const r=await fetch(API+path,{
+    ...options,
+    headers:{
+      "Content-Type":"application/json",
+      "X-Telegram-Init-Data":initData,
+      ...(options.headers||{})
+    }
+  });
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw Error(d.error||"Request failed.");
+  return d;
+}
+
+function esc(v){
+  return String(v??"").replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
+function safeUrl(v){
+  try{
+    const u=new URL(v);
+    return ["https:","http:"].includes(u.protocol)?u.href:"#";
+  }catch{return "#"}
+}
+
+function showPage(id,button){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
+  (button||document.querySelector(`[data-page="${id}"]`))?.classList.add("active");
+  if(id==="tasks")loadTasks();
+  if(id==="wallet")refreshMe();
+}
+
+async function refreshMe(){
+  me=await api("/me");
+  document.getElementById("greeting").textContent="Let's earn, "+(me.first_name||"friend")+"!";
+  document.getElementById("balance").textContent=money(me.balance);
+  document.getElementById("walletBalance").textContent=money(me.balance);
+  document.getElementById("earned").textContent=money(me.total_earned);
+  document.getElementById("referrals").textContent=me.referrals||0;
+  document.getElementById("profileName").textContent=me.first_name||"Telegram User";
+  document.getElementById("profileId").textContent="Telegram ID: "+me.telegram_id;
+  document.getElementById("dailyButton").disabled=me.last_daily_claim===new Date().toISOString().slice(0,10);
+  document.getElementById("referralLink").value=`https://t.me/${config.botUsername}?startapp=ref_${me.telegram_id}`;
+}
+
+async function loadTasks(){
+  const list=document.getElementById("taskList");
+  list.innerHTML='<div class="empty">Loading tasks...</div>';
+  try{
+    const tasks=await api("/tasks");
+    if(!tasks.length){
+      list.innerHTML='<div class="empty">No tasks available right now.</div>';
+      return;
+    }
+    list.innerHTML=tasks.map(t=>{
+      const s=t.claim_status;
+      const done=s==="approved",pending=s==="pending",rejected=s==="rejected";
+      const label=done?"Completed":pending?"Pending Review":rejected?"Rejected":(["channel","group"].includes(t.task_type)?"Verify & Claim":"Submit Task");
+      return `<article class="card"><div class="row"><h3>${esc(t.title)}</h3><span class="pill">+${money(t.reward)}</span></div><p class="muted">${esc(t.description||"Complete this task to earn a reward.")}</p>${t.url?`<p><a href="${safeUrl(t.url)}" target="_blank" rel="noopener">Open Task ↗</a></p>`:""}${["channel","group"].includes(t.task_type)?'<p class="small">Join the channel/group, then tap Verify & Claim.</p>':`<label>Proof (optional)</label><input class="field" id="proof-${t.id}" placeholder="Enter proof or username">`}<div class="row"><span class="status ${done?"done":rejected?"bad":""}">${done?"✓ COMPLETED":pending?"PENDING REVIEW":rejected?"REJECTED":""}</span><button class="btn" ${s?"disabled":""} onclick="claimTask(${t.id},${["channel","group"].includes(t.task_type)})">${label}</button></div></article>`;
+    }).join("");
+  }catch(e){
+    list.innerHTML=`<div class="empty">${esc(e.message)}</div>`;
+  }
+}
+
+async function claimTask(taskId,autoVerify){
+  try{
+    const proof=document.getElementById("proof-"+taskId)?.value.trim()||"";
+    const r=await api("/task-claim",{method:"POST",body:JSON.stringify({taskId,proof})});
+    alert(r.status==="approved"?`Task completed! ${money(r.reward)} added to your balance.`:"Task submitted for admin review.");
+    await refreshMe();
+    await loadTasks();
+  }catch(e){alert(e.message)}
+}
+
+async function claimDaily(){
+  const b=document.getElementById("dailyButton");
+  b.disabled=true;
+  try{
+    await api("/daily-claim",{method:"POST",body:"{}"});
+    alert("Daily reward claimed: $0.015");
+    await refreshMe();
+  }catch(e){
+    alert(e.message);
+    b.disabled=false;
+  }
+}
+
+async function copyReferral(){
+  const i=document.getElementById("referralLink");
+  try{await navigator.clipboard.writeText(i.value)}
+  catch{i.select();document.execCommand("copy")}
+  alert("Referral link copied!");
+}
+
+function shareReferral(){
+  const link=document.getElementById("referralLink").value;
+  if(tg?.openTelegramLink){
+    tg.openTelegramLink("https://t.me/share/url?url="+encodeURIComponent(link)+"&text="+encodeURIComponent("Join me on TaskPay and earn rewards!"));
+  }else{
+    location.href="https://t.me/share/url?url="+encodeURIComponent(link)+"&text="+encodeURIComponent("Join me on TaskPay and earn rewards!");
+  }
+}
+
+function updatePrice(){
+  document.getElementById("requestPrice").textContent=
+    (Number(document.getElementById("memberCount").value)>2000?"$6.00":"$4.00")+" USDT";
+}
+
+async function copyPaymentAddress(){
+  const a=document.getElementById("paymentAddress").value;
+  if(!a){alert("Payment address is not configured. Contact Help Center.");return}
+  try{await navigator.clipboard.writeText(a)}
+  catch{document.getElementById("paymentAddress").select();document.execCommand("copy")}
+  alert("Payment address copied. Verify it before sending funds.");
+}
+
+async function submitTaskRequest(){
+  const out=document.getElementById("taskRequestMessage");
+  out.textContent="";
+  try{
+    const result=await api("/task-requests",{
+      method:"POST",
+      body:JSON.stringify({
+        title:document.getElementById("taskTitle").value,
+        description:document.getElementById("taskDescription").value,
+        targetUrl:document.getElementById("targetUrl").value,
+        memberCount:Number(document.getElementById("memberCount").value),
+        taxId:document.getElementById("taxId").value,
+        paymentTxId:document.getElementById("paymentTxId").value
+      })
+    });
+    out.textContent=`Request #${result.requestId} submitted. Payment will be reviewed by the admin.`;
+  }catch(e){out.textContent=e.message}
+}
+
+async function sendHelp(){
+  const out=document.getElementById("helpResult");
+  out.textContent="";
+  try{
+    await api("/help",{
+      method:"POST",
+      body:JSON.stringify({message:document.getElementById("helpMessage").value})
+    });
+    out.textContent="Message sent to the admin. Thank you.";
+    document.getElementById("helpMessage").value="";
+  }catch(e){out.textContent=e.message}
+}
+
+async function withdraw(){
+  const output=document.getElementById("walletMessage");
+  output.textContent="";
+  try{
+    await api("/withdraw",{
+      method:"POST",
+      body:JSON.stringify({
+        amount:Number(document.getElementById("withdrawAmount").value),
+        binanceId:document.getElementById("binanceId").value.trim()
+      })
+    });
+    output.textContent="Withdrawal request submitted for review.";
+    await refreshMe();
+  }catch(e){output.textContent=e.message}
+}
+
+/* Improved launch diagnostics */
+async function start(){
+  const loading=document.getElementById("loading");
+
+  if(!tg){
+    loading.innerHTML='<h2>Telegram SDK Missing</h2><p class="muted">Telegram WebApp could not initialize. Open TaskPay inside Telegram.</p>';
+    return;
+  }
+
+  if(!initData){
+    loading.innerHTML='<h2>Telegram Launch Data Missing</h2><p class="muted">Telegram did not provide Mini App launch data. Open TaskPay using the configured Main Mini App.</p>';
+    return;
+  }
+
+  if(!telegramUser){
+    loading.innerHTML='<h2>Telegram User Missing</h2><p class="muted">Telegram did not provide user information. Close and reopen TaskPay inside Telegram.</p>';
+    return;
+  }
+
+  try{
+    config=await api("/config");
+    document.getElementById("paymentAddress").value=config.usdtAddress||"";
+    await refreshMe();
+    await loadTasks();
+    loading.style.opacity="0";
+    setTimeout(()=>loading.remove(),350);
+  }catch(e){
+    loading.innerHTML=`<h2>TaskPay could not load</h2><p class="muted">${esc(e.message)}</p>`;
+  }
+}
+
 start();
 </script>
 </body>
