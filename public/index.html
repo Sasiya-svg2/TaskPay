@@ -24,7 +24,7 @@ a{color:var(--gold);overflow-wrap:anywhere}.notice{background:#252018;border:1px
 .nav button{background:transparent;color:#929292;font-size:10px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:50px}.nav button span{font-size:20px}.nav button.active{color:var(--orange)}
 .loading{position:fixed;inset:0;background:var(--bg);z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .3s}.logo{height:68px;width:68px;border-radius:22px;background:linear-gradient(140deg,var(--gold),var(--orange));display:grid;place-items:center;color:#111;font-weight:900;font-size:34px;animation:bob 1s infinite alternate}@keyframes bob{to{transform:translateY(-7px)}}.spinner{width:24px;height:24px;border:3px solid #333;border-top-color:var(--orange);border-radius:50%;animation:spin .7s linear infinite;margin-top:16px}@keyframes spin{to{transform:rotate(360deg)}}
 .profile-hero{display:flex;align-items:center;gap:14px}.profile-avatar{width:58px;height:58px;flex:0 0 58px;display:grid;place-items:center;border-radius:18px;background:linear-gradient(135deg,var(--gold),var(--orange));color:#201006;font-size:25px;font-weight:900}.profile-name{font-size:19px;font-weight:800;overflow-wrap:anywhere}.profile-username{font-size:12px;color:var(--gold);margin-top:5px;overflow-wrap:anywhere}.profile-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:16px}.profile-stat{background:#251b15;border:1px solid #4b2b19;border-radius:13px;padding:11px 9px;min-width:0}.profile-stat span{display:block;font-size:10px;color:#d2a88b;line-height:1.4}.profile-stat b{display:block;font-size:15px;color:#ffad60;margin-top:6px;overflow-wrap:anywhere}.profile-action{display:flex;align-items:center;gap:12px;width:100%;padding:14px;margin-top:10px;border:1px solid #5b351d;border-radius:15px;background:linear-gradient(110deg,#2b1d14,#211813);color:var(--text);text-align:left}.profile-action .action-icon{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(135deg,#ffb347,#ff8126);color:#201006;font-size:20px}.profile-action .action-copy{flex:1;min-width:0}.profile-action .action-copy b{display:block;font-size:14px;margin-bottom:4px}.profile-action .action-copy span{display:block;font-size:11px;color:#c9a58b;line-height:1.4}.profile-action .arrow{color:var(--gold);font-size:20px}.profile-referral{margin-top:14px}
-.friend-list{display:grid;gap:9px;margin:14px 0}.friend-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid #5b351d;border-radius:12px;background:#201811}.friend-name{font-weight:600;overflow-wrap:anywhere}.friend-handle{font-size:11px;color:var(--muted);margin-top:3px}.friend-status{font-size:11px;font-weight:700;padding:6px 8px;border-radius:999px;white-space:nowrap}.friend-status.verified{background:#153b2a;color:#6fe3a4}.friend-status.unverified{background:#49351a;color:#ffd18a}
+.ad-bars{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:5px;margin:16px 0}.ad-bar{height:10px;border-radius:4px;background:#352719;border:1px solid #5c351d}.ad-bar.filled{background:#ff8126;border-color:#ff8126}.friend-list{display:grid;gap:9px;margin:14px 0}.friend-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid #5b351d;border-radius:12px;background:#201811}.friend-name{font-weight:600;overflow-wrap:anywhere}.friend-handle{font-size:11px;color:var(--muted);margin-top:3px}.friend-status{font-size:11px;font-weight:700;padding:6px 8px;border-radius:999px;white-space:nowrap}.friend-status.verified{background:#153b2a;color:#6fe3a4}.friend-status.unverified{background:#49351a;color:#ffd18a}
 .referral-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0 18px}.referral-stat{padding:15px 12px;border:1px solid #5b351d;border-radius:14px;background:#251b15;min-width:0}.referral-stat span{display:block;font-size:12px;color:#c9a58b}.referral-stat b{display:block;font-size:22px;color:#ffad60;margin-top:7px;overflow-wrap:anywhere}.friend-list{display:grid;gap:8px;margin-top:12px}.friend-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;background:#171717;border:1px solid var(--line);border-radius:11px}.friend-row b{display:block;font-size:13px;overflow-wrap:anywhere}.friend-row small{display:block;color:var(--muted);font-size:11px;margin-top:4px}.friend-status{font-size:10px;font-weight:800;padding:6px 8px;border-radius:20px;white-space:nowrap}.friend-status.verified{color:#35c982;background:#163326}.friend-status.unverified{color:#ffb347;background:#352719}
 </style>
 </head>
@@ -39,7 +39,8 @@ a{color:var(--gold);overflow-wrap:anywhere}.notice{background:#252018;border:1px
 <div class="balance"><div class="label">Available Balance</div><div class="amount" id="balance">$0.000</div><div class="stats"><div class="stat">Total Earned<b id="earned">$0.000</b></div><div class="stat">Referrals<b id="referralCount">0</b></div></div></div>
 <div class="section-head"><h3>Rewards Hub</h3></div>
 <div class="grid">
-<button class="card feature" onclick="showPage('tasks')"><div class="icon">🎯</div><b>Available Tasks</b><span>Verify and earn rewards</span></button>
+<button class="card feature" onclick="showPage('tasks')"><div class="icon">🎯</div><b>Available Tasks</b><span>Start tasks and claim rewards</span></button>
+<button class="card feature" onclick="showPage('ads')"><div class="icon">📺</div><b>Watch Ads And Earn</b><span>Earn $0.010 per ad · 100 daily</span></button>
 <button class="card feature" onclick="showPage('referrals')"><div class="icon">👥</div><b>Invite Friends</b><span>Get $0.010 per referral</span></button>
 <button class="card feature" onclick="claimDaily()"><div class="icon">🎁</div><b>Daily Reward</b><span>Claim $0.015 daily</span></button>
 <button class="card feature" onclick="showPage('wallet')"><div class="icon">💳</div><b>My Wallet</b><span>Minimum withdrawal $5</span></button>
@@ -53,6 +54,11 @@ a{color:var(--gold);overflow-wrap:anywhere}.notice{background:#252018;border:1px
 <section class="page" id="tasks">
 <div class="section-head"><h3>Available Tasks</h3><button class="btn secondary" onclick="loadTasks()">Refresh</button></div>
 <div id="taskList"><div class="empty">Loading tasks...</div></div>
+</section>
+
+<section class="page" id="ads">
+<div class="section-head"><h3>Watch Ads And Earn</h3></div>
+<div class="card"><div class="row"><div><b>Daily Ad Progress</b><p class="muted" id="adCountText">0 / 100 ads watched</p></div><b id="adEarnings">$0.000</b></div><div class="ad-bars" id="adBars" aria-label="Daily ad progress"></div><p class="muted" id="adMessage">Tap Start Ad to begin. AdsGram integration will be added later.</p><button class="btn full" id="adButton" onclick="startAd()">START</button></div>
 </section>
 
 <section class="page" id="referrals">
@@ -174,6 +180,7 @@ function showPage(id,button){
   document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
   (button||document.querySelector(`[data-page="${id}"]`))?.classList.add("active");
   if(id==="tasks")loadTasks();
+  if(id==="ads")refreshAds();
   if(id==="wallet")refreshMe();
   if(id==="referrals")refreshMe().catch(e=>console.error("Could not refresh referral data:",e));
 }
@@ -220,30 +227,59 @@ async function loadTasks(){
   list.innerHTML='<div class="empty">Loading tasks...</div>';
   try{
     const tasks=await api("/tasks");
-    if(!tasks.length){
-      list.innerHTML='<div class="empty">No tasks available right now.</div>';
-      return;
-    }
+    if(!tasks.length){list.innerHTML='<div class="empty">No tasks available right now.</div>';return;}
     list.innerHTML=tasks.map(t=>{
-      const s=t.claim_status;
-      const done=s==="approved";
-      const canAutoClaim=["channel","group"].includes(t.task_type)&&Boolean(t.chat_id);
-      const label=done?"Completed":canAutoClaim?"Claim Reward":"Unavailable";
-      const statusText=done?"✓ COMPLETED":canAutoClaim?"":"AUTO-CLAIM UNAVAILABLE";
-      return `<article class="card"><div class="row"><h3>${esc(t.title)}</h3><span class="pill">+${money(t.reward)}</span></div><p class="muted">${esc(t.description||"Join the Telegram group/channel to earn this reward.")}</p>${t.url?`<p><a href="${safeUrl(t.url)}" target="_blank" rel="noopener">Open Task ↗</a></p>`:""}${canAutoClaim?'<p class="small">Join the group/channel first, then tap Claim Reward. Your membership will be checked automatically.</p>':'<p class="small">This task cannot be auto-verified. Only Telegram group/channel tasks with a valid chat ID can be claimed.</p>'}<div class="row"><span class="status ${done?"done":""}">${statusText}</span><button class="btn" ${done||!canAutoClaim?"disabled":""} onclick="claimTask(${t.id})">${label}</button></div></article>`;
+      const s=t.claim_status, done=s==="approved", pending=s==="pending", rejected=s==="rejected";
+      const isJoin=["channel","group"].includes(t.task_type);
+      const started=sessionStorage.getItem("taskpay_started_"+t.id)==="1";
+      const label=done?"COMPLETED":pending?"PENDING REVIEW":rejected?"REJECTED":(isJoin?(started?"CLAIM":"START"):(started?"CLAIM":"START"));
+      return `<article class="card"><div class="row"><h3>${esc(t.title)}</h3><span class="pill">+${money(t.reward)}</span></div><p class="muted">${esc(t.description||"Complete this task to earn a reward.")}</p>${!isJoin&&!done&&!pending&&!rejected?`<label>Proof (optional)</label><input class="field" id="proof-${t.id}" placeholder="Enter proof or username">`:""}<div class="row" style="margin-top:14px"><span class="status ${done?"done":rejected?"bad":""}">${done?"✓ COMPLETED":pending?"PENDING REVIEW":rejected?"REJECTED":""}</span><button class="btn" ${s?"disabled":""} onclick="taskAction(${t.id},${isJoin},'${esc(safeUrl(t.url||''))}')">${label}</button></div></article>`;
     }).join("");
-  }catch(e){
-    list.innerHTML=`<div class="empty">${esc(e.message)}</div>`;
+  }catch(e){list.innerHTML=`<div class="empty">${esc(e.message)}</div>`;}
+}
+async function taskAction(taskId,autoVerify,url){
+  const started=sessionStorage.getItem("taskpay_started_"+taskId)==="1";
+  if(!started){
+    sessionStorage.setItem("taskpay_started_"+taskId,"1");
+    if(url && url!=="#"){if(tg?.openTelegramLink && url.includes("t.me/"))tg.openTelegramLink(url);else window.open(url,"_blank");}
+    await loadTasks();return;
   }
+  await claimTask(taskId,autoVerify);
+}
+async function claimTask(taskId,autoVerify){
+  try{
+    const proof=document.getElementById("proof-"+taskId)?.value.trim()||"";
+    const r=await api("/task-claim",{method:"POST",body:JSON.stringify({taskId,proof})});
+    alert(r.status==="approved"?`Task completed! ${money(r.reward)} added to your balance.`:r.status==="pending"?"Task submitted for admin review.":"Task claimed.");
+    await refreshMe();await loadTasks();
+  }catch(e){alert(e.message)}
 }
 
-async function claimTask(taskId){
-  try{
-    const r=await api("/task-claim",{method:"POST",body:JSON.stringify({taskId})});
-    if(r.status==="approved") alert(`Verified! ${money(r.reward)} has been added to your balance.`);
-    await refreshMe();
-    await loadTasks();
-  }catch(e){alert(e.message)}
+let adTimer=null;
+async function refreshAds(){
+ try{const d=await api("/ads/status");renderAds(d);}
+ catch(e){document.getElementById("adMessage").textContent=e.message;}
+}
+function renderAds(d){
+ const count=Number(d.count||0);document.getElementById("adCountText").textContent=`${count} / 100 ads watched`;
+ document.getElementById("adEarnings").textContent=money(count*0.01);
+ document.getElementById("adBars").innerHTML=Array.from({length:100},(_,i)=>`<span class="ad-bar ${i<count?"filled":""}"></span>`).join("");
+ const b=document.getElementById("adButton"),m=document.getElementById("adMessage");
+ if(count>=100){b.disabled=true;b.textContent="COME AGAIN TOMORROW";m.textContent="Come Again Tomorrow";}
+ else if(d.started){b.disabled=false;b.textContent="CLAIM";m.textContent="Demo ad timer finished. Claim your $0.010 reward.";}
+ else {b.disabled=false;b.textContent="START";m.textContent="AdsGram integration will be added later. Demo mode: wait 10 seconds before claiming.";}
+}
+async function startAd(){
+ const b=document.getElementById("adButton");b.disabled=true;
+ try{
+  const status=await api("/ads/status");
+  if(Number(status.count)>=100){renderAds(status);return;}
+  if(status.started){const result=await api("/ads/claim",{method:"POST",body:"{}"});alert("Ad reward credited: $0.010");await refreshMe();renderAds(result);return;}
+  await api("/ads/start",{method:"POST",body:"{}"});
+  document.getElementById("adMessage").textContent="Demo ad is running... please wait 10 seconds.";
+  let left=10;b.textContent=`WAIT ${left}s`;
+  adTimer=setInterval(async()=>{left--;if(left>0){b.textContent=`WAIT ${left}s`;return;}clearInterval(adTimer);adTimer=null;await refreshAds();},1000);
+ }catch(e){alert(e.message);b.disabled=false;}
 }
 
 async function claimDaily(){
