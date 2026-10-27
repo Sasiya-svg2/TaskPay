@@ -1,4 +1,3 @@
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -723,15 +722,23 @@ async function handleApi(request, env, url) {
       WHERE telegram_id = ?
     `).bind(telegramId).first();
 
-    const referrals = await db.prepare(`
-      SELECT COUNT(*) count
-      FROM users
-      WHERE referred_by = ?
-    `).bind(telegramId).first();
+    const [referrals, completedTasks] = await Promise.all([
+      db.prepare(`
+        SELECT COUNT(*) count
+        FROM users
+        WHERE referred_by = ?
+      `).bind(telegramId).first(),
+      db.prepare(`
+        SELECT COUNT(*) count
+        FROM task_claims
+        WHERE telegram_id = ? AND status = 'approved'
+      `).bind(telegramId).first()
+    ]);
 
     return json({
       ...me,
-      referrals: referrals.count
+      referrals: referrals.count,
+      completedTasks: completedTasks.count
     });
   }
 
