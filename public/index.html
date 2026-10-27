@@ -10,7 +10,7 @@
 :root{--bg:#101010;--panel:#1a1a1a;--panel2:#222;--orange:#ff8126;--gold:#ffb347;--text:#f7f7f7;--muted:#a4a4a4;--line:#303030;--green:#35c982;--red:#ff6262}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif;padding-bottom:85px}
 button,input,textarea{font:inherit}button{cursor:pointer;border:0}.app{max-width:620px;margin:auto;padding:17px 15px}
-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}.brand{font-size:25px;font-weight:900;letter-spacing:-1px}.brand span{color:var(--orange)}.badge{border:1px solid #5b351d;color:var(--gold);border-radius:20px;padding:8px 11px;font-size:11px}
+header{display:flex;justify-content:flex-start;align-items:center;margin-bottom:22px}.brand{font-size:25px;font-weight:900;letter-spacing:-1px}.brand span{color:var(--orange)}
 .page{display:none}.page.active{display:block;animation:fade .18s ease}@keyframes fade{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}
 h2{font-size:22px;margin:7px 0 15px}h3{font-size:17px;margin:0}.muted{color:var(--muted);font-size:13px;line-height:1.55}.small{font-size:11px;color:var(--muted)}
 .balance{padding:23px;border-radius:22px;background:linear-gradient(130deg,#ff9d35,#f65b21);color:#fff;box-shadow:0 12px 32px #ff812622;margin:16px 0 20px}.balance .label{font-size:13px;opacity:.9}.amount{font-size:38px;font-weight:900;margin:8px 0 17px}.stats{display:flex;gap:10px}.stat{flex:1;padding:10px;background:#ffffff22;border-radius:12px;font-size:11px}.stat b{display:block;font-size:15px;margin-top:5px}
@@ -23,13 +23,14 @@ a{color:var(--gold);overflow-wrap:anywhere}.notice{background:#252018;border:1px
 .nav{position:fixed;bottom:0;left:0;right:0;z-index:10;display:flex;justify-content:space-around;background:#171717;border-top:1px solid var(--line);padding:9px 3px calc(9px + env(safe-area-inset-bottom))}
 .nav button{background:transparent;color:#929292;font-size:10px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:50px}.nav button span{font-size:20px}.nav button.active{color:var(--orange)}
 .loading{position:fixed;inset:0;background:var(--bg);z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .3s}.logo{height:68px;width:68px;border-radius:22px;background:linear-gradient(140deg,var(--gold),var(--orange));display:grid;place-items:center;color:#111;font-weight:900;font-size:34px;animation:bob 1s infinite alternate}@keyframes bob{to{transform:translateY(-7px)}}.spinner{width:24px;height:24px;border:3px solid #333;border-top-color:var(--orange);border-radius:50%;animation:spin .7s linear infinite;margin-top:16px}@keyframes spin{to{transform:rotate(360deg)}}
+.profile-hero{display:flex;align-items:center;gap:14px}.profile-avatar{width:58px;height:58px;flex:0 0 58px;display:grid;place-items:center;border-radius:18px;background:linear-gradient(135deg,var(--gold),var(--orange));color:#201006;font-size:25px;font-weight:900}.profile-name{font-size:19px;font-weight:800;overflow-wrap:anywhere}.profile-username{font-size:12px;color:var(--gold);margin-top:5px;overflow-wrap:anywhere}.profile-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:16px}.profile-stat{background:#251b15;border:1px solid #4b2b19;border-radius:13px;padding:11px 9px;min-width:0}.profile-stat span{display:block;font-size:10px;color:#d2a88b;line-height:1.4}.profile-stat b{display:block;font-size:15px;color:#ffad60;margin-top:6px;overflow-wrap:anywhere}.profile-action{display:flex;align-items:center;gap:12px;width:100%;padding:14px;margin-top:10px;border:1px solid #5b351d;border-radius:15px;background:linear-gradient(110deg,#2b1d14,#211813);color:var(--text);text-align:left}.profile-action .action-icon{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(135deg,#ffb347,#ff8126);color:#201006;font-size:20px}.profile-action .action-copy{flex:1;min-width:0}.profile-action .action-copy b{display:block;font-size:14px;margin-bottom:4px}.profile-action .action-copy span{display:block;font-size:11px;color:#c9a58b;line-height:1.4}.profile-action .arrow{color:var(--gold);font-size:20px}.profile-referral{margin-top:14px}
 </style>
 </head>
 <body>
 <div class="loading" id="loading"><div class="logo">T</div><h2>Task<span style="color:#ff8126">Pay</span></h2><div class="muted">Small tasks. Real rewards.</div><div class="spinner"></div></div>
 
 <main class="app">
-<header><div class="brand">Task<span>Pay</span></div><a class="badge" href="https://t.me/flash_bot_update" target="_blank" rel="noopener">OFFICIAL CHANNEL ↗</a></header>
+<header><div class="brand">Task<span>Pay</span></div></header>
 
 <section class="page active" id="home">
 <div class="small">WELCOME TO TASKPAY</div><h2 id="greeting">Let's earn today.</h2>
@@ -99,9 +100,18 @@ a{color:var(--gold);overflow-wrap:anywhere}.notice{background:#252018;border:1px
 </section>
 
 <section class="page" id="profile">
-<div class="section-head"><h3>My Account</h3></div>
-<div class="card"><h3 id="profileName">Telegram User</h3><p class="muted" id="profileId"></p><p class="muted">Keep your account secure. Never share your Telegram login codes with anyone.</p></div>
-</section>
+ <div class="section-head"><h3>My Profile</h3></div>
+ <div class="card"><div class="profile-hero">
+  <div class="profile-avatar" id="profileAvatar">T</div><div style="min-width:0">
+   <div class="profile-name" id="profileName">Telegram User</div><div class="profile-username" id="profileUsername">TaskPay Account</div><p class="small" id="profileId" style="margin-bottom:0"></p>
+  </div></div>
+  <div class="profile-stats"><div class="profile-stat"><span>Total Earned</span><b id="profileEarned">$0.000</b></div><div class="profile-stat"><span>Tasks Completed</span><b id="profileTasks">0</b></div><div class="profile-stat"><span>Referrals</span><b id="profileReferrals">0</b></div></div>
+  <p class="muted" style="margin-bottom:0;margin-top:15px">Keep your account secure. Never share your Telegram login codes with anyone.</p>
+ </div>
+ <button class="profile-action" onclick="openOfficialChannel()"><span class="action-icon">📣</span><span class="action-copy"><b>Official Channel</b><span>Follow TaskPay updates and announcements.</span></span><span class="arrow">›</span></button>
+ <button class="profile-action" onclick="showPage('help')"><span class="action-icon">💬</span><span class="action-copy"><b>Support Center</b><span>Need help? Send a message to our support team.</span></span><span class="arrow">›</span></button>
+ <div class="card profile-referral"><h3>🔗 Your Referral Link</h3><p class="muted">Invite friends and earn rewards when they join.</p><input class="field" id="profileReferralLink" readonly placeholder="Loading your link..."><button class="btn full" onclick="copyReferral()">Copy Referral Link</button><button class="btn secondary full" onclick="shareReferral()">Share Referral Link</button></div>
+ </section>
 </main>
 
 <nav class="nav">
@@ -163,15 +173,24 @@ function showPage(id,button){
 
 async function refreshMe(){
   me=await api("/me");
+  const displayName=me.first_name||"Telegram User";
   document.getElementById("greeting").textContent="Let's earn, "+(me.first_name||"friend")+"!";
   document.getElementById("balance").textContent=money(me.balance);
   document.getElementById("walletBalance").textContent=money(me.balance);
   document.getElementById("earned").textContent=money(me.total_earned);
   document.getElementById("referrals").textContent=me.referrals||0;
-  document.getElementById("profileName").textContent=me.first_name||"Telegram User";
+  document.getElementById("profileName").textContent=displayName;
+  document.getElementById("profileAvatar").textContent=(displayName.trim()[0]||"T").toUpperCase();
+  document.getElementById("profileUsername").textContent=me.username?"@"+me.username:"TaskPay Account";
   document.getElementById("profileId").textContent="Telegram ID: "+me.telegram_id;
+  document.getElementById("profileEarned").textContent=money(me.total_earned);
+  document.getElementById("profileTasks").textContent=Number(me.completedTasks||0);
+  document.getElementById("profileReferrals").textContent=Number(me.referrals||0);
   document.getElementById("dailyButton").disabled=me.last_daily_claim===new Date().toISOString().slice(0,10);
-  document.getElementById("referralLink").value=`https://t.me/${config.botUsername}?startapp=ref_${me.telegram_id}`;
+  const botName=String(config.botUsername||"task_v1_bot").trim().replace(/^@/,"");
+  const referralUrl=`https://t.me/${botName}?startapp=ref_${me.telegram_id}`;
+  document.getElementById("referralLink").value=referralUrl;
+  document.getElementById("profileReferralLink").value=referralUrl;
 }
 
 async function loadTasks(){
@@ -217,20 +236,37 @@ async function claimDaily(){
   }
 }
 
+function getReferralUrl(){
+  return document.getElementById("profileReferralLink")?.value ||
+    document.getElementById("referralLink")?.value || "";
+}
+
 async function copyReferral(){
-  const i=document.getElementById("referralLink");
-  try{await navigator.clipboard.writeText(i.value)}
-  catch{i.select();document.execCommand("copy")}
+  const link=getReferralUrl();
+  if(!link){alert("Your referral link is still loading. Please try again.");return}
+  try{await navigator.clipboard.writeText(link)}
+  catch{
+    const i=document.getElementById("profileReferralLink");
+    const fallback=i?.value?i:document.getElementById("referralLink");
+    fallback.select();document.execCommand("copy");
+  }
   alert("Referral link copied!");
 }
 
 function shareReferral(){
-  const link=document.getElementById("referralLink").value;
+  const link=getReferralUrl();
+  if(!link){alert("Your referral link is still loading. Please try again.");return}
   if(tg?.openTelegramLink){
     tg.openTelegramLink("https://t.me/share/url?url="+encodeURIComponent(link)+"&text="+encodeURIComponent("Join me on TaskPay and earn rewards!"));
   }else{
     location.href="https://t.me/share/url?url="+encodeURIComponent(link)+"&text="+encodeURIComponent("Join me on TaskPay and earn rewards!");
   }
+}
+
+function openOfficialChannel(){
+  const channel=config.officialChannel||"https://t.me/flash_bot_update";
+  if(tg?.openTelegramLink) tg.openTelegramLink(channel);
+  else window.open(channel,"_blank","noopener");
 }
 
 function updatePrice(){
