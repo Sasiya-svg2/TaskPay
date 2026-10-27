@@ -366,9 +366,10 @@ async function handleApi(request, env, url) {
         body.task_type
       ) ? body.task_type : "link";
 
-      const chatIdInput = String(body.chat_id || "").trim();
-      const linkMatch = taskUrl.match(/^https?:\/\/(?:www\.)?t\.me\/([A-Za-z0-9_]{5,})(?:\?.*)?$/i);
-      const chatId = chatIdInput || (linkMatch ? "@" + linkMatch[1] : "");
+      // The target channel/group is derived from the public Telegram URL.
+      // Admins do not need to enter a separate Channel ID or username.
+      const linkMatch = taskUrl.match(/^https?:\/\/(?:www\.)?t\.me\/([A-Za-z0-9_]{5,})\/?(?:\?.*)?$/i);
+      const chatId = linkMatch ? "@" + linkMatch[1] : "";
 
       if (
         !title ||
@@ -402,13 +403,14 @@ async function handleApi(request, env, url) {
       // Notify all users who have started the bot; Telegram cannot message users who never opened it.
       try {
         const recipients = await db.prepare("SELECT telegram_id FROM users").all();
-        const taskUrlButton = taskUrl ? [{ text: "START TASK", url: taskUrl }] : [];
+        const botUsername = String(env.BOT_USERNAME || "task_v1_bot").replace(/^@/, "");
+        const openBotButton = [{ text: "OPEN BOT", url: `https://t.me/${botUsername}` }];
         for (const recipient of (recipients.results || [])) {
           try {
             await telegramRequest(env, "sendMessage", {
               chat_id: recipient.telegram_id,
-              text: `🌟 New Task Available 📣\n\n💰 COMPLETE AND EARN REWARD 🎉\n\n${title}\nReward: $${reward.toFixed(3)}`,
-              reply_markup: taskUrlButton.length ? { inline_keyboard: [taskUrlButton] } : undefined
+              text: `🌟 New Task Available 📣\n\n💰 COMPLETE AND EARN REWARD 🎉\n\n📌 ${title}\n💵 Reward: $${reward.toFixed(3)}\n\nOpen TaskPay to complete this task and claim your reward!`,
+              reply_markup: { inline_keyboard: [openBotButton] }
             });
           } catch (error) { console.error("Task broadcast failed for user", recipient.telegram_id, error); }
         }
@@ -908,8 +910,7 @@ async function handleApi(request, env, url) {
       return json(
         {
           error:
-            "Could not verify membership. Check that the bot " +
-            "is an administrator in the channel/group and the chat ID is correct."
+            "Telegram could not check this channel/group. Make sure the task URL is a public t.me/username link and add the TaskPay bot as an administrator in that exact channel/group, then try Claim again."
         },
         400
       );
