@@ -166,44 +166,6 @@ async function notifyAdmin(env, message) {
   });
 }
 
-// Notify every registered bot user when a new task becomes available.
-// Telegram bots can message only users who have previously started the bot.
-async function broadcastNewTask(db, env, task) {
-  const botUsername = String(env.BOT_USERNAME || "task_v1_bot").replace(/^@/, "");
-  const appUrl = String(env.MINI_APP_URL || `https://t.me/${botUsername}?startapp=tasks`).trim();
-  const users = await db.prepare(
-    "SELECT telegram_id FROM users WHERE telegram_id IS NOT NULL AND telegram_id != ''"
-  ).all();
-
-  const message =
-    "🌟 New Task Available 📣\n\n" +
-    "💰 COMPLETE AND EARN REWARD 🎉\n\n" +
-    `📌 ${task.title}\n` +
-    `💵 Reward: $${Number(task.reward).toFixed(3)}\n\n` +
-    "Open TaskPay to complete this task and claim your reward!";
-
-  let sent = 0;
-  for (const user of (users.results || [])) {
-    try {
-      await telegramRequest(env, "sendMessage", {
-        chat_id: user.telegram_id,
-        text: message,
-        reply_markup: {
-          inline_keyboard: [[{ text: "🚀 Open TaskPay", url: appUrl }]]
-        }
-      });
-      sent++;
-      // Keep the broadcast below Telegram's usual per-chat send rate.
-      await new Promise(resolve => setTimeout(resolve, 40));
-    } catch (error) {
-      // A user may have blocked the bot; continue notifying other users.
-      console.error(`New-task notification failed for ${user.telegram_id}:`, error);
-    }
-  }
-
-  return { sent, total: (users.results || []).length };
-}
-
 async function ensureUser(db, user, startParam, env) {
   const id = String(user.id);
 
@@ -404,7 +366,9 @@ async function handleApi(request, env, url) {
         body.task_type
       ) ? body.task_type : "link";
 
-      const chatId = String(body.chat_id || "").trim();
+      const chatIdInput = String(body.chat_id || "").trim();
+      const linkMatch = taskUrl.match(/^https?:\/\/(?:www\.)?t\.me\/([A-Za-z0-9_]{5,})(?:\?.*)?$/i);
+      const chatId = chatIdInput || (linkMatch ? "@" + linkMatch[1] : "");
 
       if (
         !title ||
@@ -419,13 +383,7 @@ async function handleApi(request, env, url) {
       }
 
       if (taskType !== "link" && !chatId) {
-        return json(
-          {
-            error:
-              "Enter the Telegram channel/group username or chat ID."
-          },
-          400
-        );
+        return json({ error: "Use a public Telegram channel/group link (t.me/username) so membership can be checked without a Channel ID field." }, 400);
       }
 
       await db.prepare(`
@@ -441,17 +399,21 @@ async function handleApi(request, env, url) {
         chatId
       ).run();
 
-      let notification = { sent: 0, total: 0 };
+      // Notify all users who have started the bot; Telegram cannot message users who never opened it.
       try {
-        notification = await broadcastNewTask(db, env, {
-          title,
-          reward
-        });
-      } catch (error) {
-        console.error("New-task broadcast failed:", error);
-      }
-
-      return json({ ok: true, notificationsSent: notification.sent });
+        const recipients = await db.prepare("SELECT telegram_id FROM users").all();
+        const taskUrlButton = taskUrl ? [{ text: "START TASK", url: taskUrl }] : [];
+        for (const recipient of (recipients.results || [])) {
+          try {
+            await telegramRequest(env, "sendMessage", {
+              chat_id: recipient.telegram_id,
+              text: `🌟 New Task Available 📣\n\n💰 COMPLETE AND EARN REWARD 🎉\n\n${title}\nReward: $${reward.toFixed(3)}`,
+              reply_markup: taskUrlButton.length ? { inline_keyboard: [taskUrlButton] } : undefined
+            });
+          } catch (error) { console.error("Task broadcast failed for user", recipient.telegram_id, error); }
+        }
+      } catch (error) { console.error("Task broadcast list failed", error); }
+      return json({ ok: true });
     }
 
     const removeTask = path.match(
@@ -625,15 +587,6 @@ async function handleApi(request, env, url) {
           taskType,
           chatId
         ).run();
-
-        try {
-          await broadcastNewTask(db, env, {
-            title: taskRequest.title,
-            reward: 0.02
-          });
-        } catch (error) {
-          console.error("Approved-task broadcast failed:", error);
-        }
 
         try {
           await telegramRequest(env, "sendMessage", {
@@ -904,16 +857,40 @@ async function handleApi(request, env, url) {
       return json({ error: "Task is unavailable." }, 404);
     }
 
-    // Only Telegram group/channel membership tasks can be claimed automatically.
-    // Never create a pending-review claim or send a task claim to the admin.
-    if (!["channel", "group"].includes(task.task_type) || !task.chat_id) {
-      return json(
-        {
-          error:
-            "Automatic claims are available only for Telegram group/channel tasks with a valid chat ID."
-        },
-        400
-      );
+    // Regular URL tasks require admin review.
+    if (
+      !["channel", "group"].includes(task.task_type) ||
+      !task.chat_id
+    ) {
+      const proof = String(body.proof || "").trim();
+
+      try {
+        await db.prepare(`
+          INSERT INTO task_claims
+            (telegram_id, task_id, proof)
+          VALUES (?, ?, ?)
+        `).bind(telegramId, taskId, proof).run();
+      } catch {
+        return json(
+          { error: "You have already submitted this task." },
+          409
+        );
+      }
+
+      try {
+        await notifyAdmin(
+          env,
+          `📝 Task submission\n` +
+          `User ID: ${telegramId}\n` +
+          `Task: ${task.title}\n` +
+          `Proof: ${proof || "Not provided"}\n` +
+          "Review this submission in the TaskPay Admin Panel."
+        );
+      } catch (error) {
+        console.error("Task notification failed:", error);
+      }
+
+      return json({ ok: true, status: "pending" });
     }
 
     // Verify channel/group membership using Telegram.
@@ -989,6 +966,37 @@ async function handleApi(request, env, url) {
       status: "approved",
       reward: task.reward
     });
+  }
+
+  // DAILY AD REWARDS (temporary demo mode until AdsGram is connected)
+  if (["/api/ads/status", "/api/ads/start", "/api/ads/claim"].includes(path)) {
+    await db.prepare(`CREATE TABLE IF NOT EXISTS daily_ads (telegram_id TEXT NOT NULL, ad_date TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (telegram_id, ad_date))`).run();
+    await db.prepare(`CREATE TABLE IF NOT EXISTS ad_sessions (telegram_id TEXT PRIMARY KEY, started_at INTEGER NOT NULL)`).run();
+    const today = new Date().toISOString().slice(0, 10);
+    const row = await db.prepare("SELECT count FROM daily_ads WHERE telegram_id = ? AND ad_date = ?").bind(String(telegramId), today).first();
+    const count = Number(row?.count || 0);
+    if (path === "/api/ads/status" && method === "GET") {
+      const session = await db.prepare("SELECT started_at FROM ad_sessions WHERE telegram_id = ?").bind(String(telegramId)).first();
+      return json({ count, started: !!session && Date.now() - Number(session.started_at) >= 10000, rewardPerAd: 0.01, limit: 100 });
+    }
+    if (path === "/api/ads/start" && method === "POST") {
+      if (count >= 100) return json({ error: "Come Again Tomorrow" }, 409);
+      await db.prepare("INSERT INTO ad_sessions (telegram_id, started_at) VALUES (?, ?) ON CONFLICT(telegram_id) DO UPDATE SET started_at = excluded.started_at").bind(String(telegramId), Date.now()).run();
+      return json({ ok: true, started: true });
+    }
+    if (path === "/api/ads/claim" && method === "POST") {
+      const session = await db.prepare("SELECT started_at FROM ad_sessions WHERE telegram_id = ?").bind(String(telegramId)).first();
+      if (!session || Date.now() - Number(session.started_at) < 10000) return json({ error: "Please complete the ad before claiming." }, 400);
+      if (count >= 100) return json({ error: "Come Again Tomorrow" }, 409);
+      const next = count + 1;
+      await db.batch([
+        db.prepare("INSERT INTO daily_ads (telegram_id, ad_date, count) VALUES (?, ?, 1) ON CONFLICT(telegram_id, ad_date) DO UPDATE SET count = count + 1").bind(String(telegramId), today),
+        db.prepare("UPDATE users SET balance = balance + 0.01, total_earned = total_earned + 0.01 WHERE telegram_id = ?").bind(String(telegramId)),
+        db.prepare("INSERT INTO ledger (telegram_id, amount, kind, reference) VALUES (?, 0.01, 'ad_reward', ?)").bind(String(telegramId), today + ":" + next),
+        db.prepare("DELETE FROM ad_sessions WHERE telegram_id = ?").bind(String(telegramId))
+      ]);
+      return json({ ok: true, count: next, reward: 0.01, started: false });
+    }
   }
 
   // DAILY REWARD
