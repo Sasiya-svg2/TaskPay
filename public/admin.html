@@ -2,266 +2,76 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TaskPay Admin Panel</title>
-  <style>
-    :root {
-      --orange: #ff7a24;
-      --cream: #fff8ed;
-      --ink: #29231f;
-      --muted: #81766d;
-      --line: #f0e5d8;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; background: var(--cream); color: var(--ink);
-      font-family: Arial, sans-serif;
-    }
-    header {
-      padding: 20px; background: white; border-bottom: 1px solid var(--line);
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    header h1 { margin: 0; font-size: 22px; }
-    header span { color: var(--orange); }
-    main { max-width: 1050px; padding: 20px; margin: auto; }
-    .card {
-      background: white; border: 1px solid var(--line); border-radius: 16px;
-      padding: 18px; margin-bottom: 16px;
-    }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 12px; }
-    .stat { font-size: 13px; color: var(--muted); }
-    .stat b { display: block; font-size: 26px; color: var(--ink); margin-top: 8px; }
-    input, textarea, select {
-      width: 100%; border: 1px solid var(--line); border-radius: 10px;
-      padding: 12px; margin: 6px 0 12px; font: inherit;
-    }
-    button {
-      border: 0; border-radius: 10px; padding: 10px 14px;
-      background: var(--orange); color: white; font-weight: bold; cursor: pointer;
-      margin: 3px;
-    }
-    button.secondary { background: #eee5dc; color: var(--ink); }
-    button.danger { background: #d93636; }
-    .tabs { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 15px; }
-    .tabs button { background: #fff; color: var(--ink); border: 1px solid var(--line); }
-    .tabs button.active { background: var(--orange); color: white; }
-    .item { border-top: 1px solid var(--line); padding: 15px 0; overflow-wrap: anywhere; }
-    .item:first-child { border-top: 0; }
-    .muted { color: var(--muted); font-size: 13px; line-height: 1.5; }
-    .message { color: #b03a22; font-size: 13px; white-space: pre-wrap; }
-    .hidden { display: none; }
-    @media (max-width: 550px) { main { padding: 12px; } }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101010">
+<title>TaskPay Admin</title>
+<style>
+:root{--bg:#101010;--panel:#1b1b1b;--text:#f5f5f5;--muted:#a5a5a5;--orange:#ff8126;--line:#333;--red:#ff5e5e;--green:#38c982}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,sans-serif}header{display:flex;align-items:center;justify-content:space-between;padding:17px 20px;border-bottom:1px solid var(--line);background:#171717}h1{font-size:21px;margin:0}h1 span{color:var(--orange)}main{max-width:1100px;margin:auto;padding:18px}.card{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:17px;margin-bottom:15px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.stat{font-size:12px;color:var(--muted)}.stat b{display:block;font-size:26px;color:var(--text);margin-top:9px}input,textarea,select{width:100%;padding:12px;margin:6px 0 13px;background:#111;color:#fff;border:1px solid #393939;border-radius:9px;font:inherit}label{font-size:12px;font-weight:bold}button{background:var(--orange);color:#111;border:0;border-radius:9px;padding:10px 13px;margin:3px;font-weight:bold;cursor:pointer}button.secondary{background:#333;color:#fff}button.danger{background:var(--red);color:#1a0000}.tabs{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}.tabs button{background:#252525;color:#eee;border:1px solid #383838}.tabs button.active{background:var(--orange);color:#111}.item{border-top:1px solid var(--line);padding:14px 0;overflow-wrap:anywhere}.item:first-child{border-top:0}.muted{font-size:12px;color:var(--muted);line-height:1.6}.message{color:#ffb36b;font-size:12px;white-space:pre-wrap}.hidden{display:none}.pill{display:inline-block;background:#3b281b;color:#ffb36b;padding:5px 8px;border-radius:20px;font-size:11px}.green{color:var(--green)}.red{color:var(--red)}@media(max-width:550px){main{padding:10px}header{padding:14px}}
+</style>
 </head>
 <body>
-<header>
-  <h1>Task<span>Pay</span> Admin</h1>
-  <button class="secondary" onclick="logout()">Log Out</button>
-</header>
-
+<header><h1>Task<span>Pay</span> Admin</h1><button class="secondary" onclick="logout()">Log Out</button></header>
 <main>
-  <section id="login" class="card">
-    <h2>Admin Login</h2>
-    <p class="muted">Enter the admin password configured in Cloudflare Worker secrets.</p>
-    <input id="password" type="password" placeholder="Admin password" autocomplete="current-password">
-    <button onclick="login()">Sign In</button>
-    <div id="loginMessage" class="message"></div>
-  </section>
+<section id="login" class="card">
+<h2>Admin Login</h2><p class="muted">Enter the admin password configured in Cloudflare Worker secrets.</p>
+<input id="password" type="password" placeholder="Admin password" autocomplete="current-password">
+<button onclick="login()">Sign In</button><div id="loginMessage" class="message"></div>
+</section>
 
-  <section id="panel" class="hidden">
-    <div class="grid" id="stats"></div>
+<section id="panel" class="hidden">
+<div id="stats" class="grid"></div>
+<div class="tabs">
+<button class="active" onclick="openTab('tasks',this)">Tasks</button>
+<button onclick="openTab('claims',this)">Task Submissions</button>
+<button onclick="openTab('requests',this)">Paid Task Requests</button>
+<button onclick="openTab('withdrawals',this)">Withdrawals</button>
+<button onclick="openTab('users',this)">Users</button>
+</div>
 
-    <div class="tabs">
-      <button class="active" onclick="openTab('tasks',this)">Tasks</button>
-      <button onclick="openTab('claims',this)">Task Submissions</button>
-      <button onclick="openTab('withdrawals',this)">Withdrawals</button>
-      <button onclick="openTab('users',this)">Users</button>
-    </div>
+<section id="tab-tasks" class="card">
+<h2>Add New Task</h2>
+<form id="taskForm">
+<label>Task Title</label><input name="title" maxlength="120" required placeholder="Join our Telegram channel">
+<label>Description</label><textarea name="description" rows="3" maxlength="1000" placeholder="Describe the task"></textarea>
+<label>Task URL</label><input name="url" type="url" placeholder="https://t.me/example">
+<label>Task Type</label><select name="task_type"><option value="channel">Telegram Channel Membership</option><option value="group">Telegram Group Membership</option><option value="link">Link / Manual Review</option></select>
+<label>Channel or Group Username / Chat ID</label><input name="chat_id" placeholder="@yourchannel or -1001234567890">
+<p class="muted">For automatic rewards, the bot must be an administrator in the target channel/group.</p>
+<label>Reward (USD)</label><input name="reward" type="number" min="0.001" max="100" step="0.001" value="0.02" required>
+<button type="submit">Add Task</button>
+</form>
+<div id="taskMessage" class="message"></div><h2>Existing Tasks</h2><div id="tasksList">Loading...</div>
+</section>
 
-    <section id="tab-tasks" class="card">
-      <h2>Add New Task</h2>
-      <form id="taskForm">
-        <label>Task Title</label>
-        <input name="title" required maxlength="120" placeholder="Follow our Telegram channel">
-        <label>Description</label>
-        <textarea name="description" rows="3" maxlength="1000" placeholder="Describe the task"></textarea>
-        <label>Task URL</label>
-        <input name="url" type="url" placeholder="https://t.me/example">
-        <label>Reward (USD)</label>
-        <input name="reward" type="number" min="0.001" max="100" step="0.001" value="0.02" required>
-        <button type="submit">Add Task</button>
-      </form>
-      <div id="taskMessage" class="message"></div>
-      <h2>Existing Tasks</h2>
-      <div id="tasksList">Loading...</div>
-    </section>
-
-    <section id="tab-claims" class="card hidden">
-      <h2>Pending Task Submissions</h2>
-      <div id="claimsList">Loading...</div>
-    </section>
-
-    <section id="tab-withdrawals" class="card hidden">
-      <h2>Withdrawal Requests</h2>
-      <p class="muted">Approving a request posts a payment confirmation to the configured proof channel. It does not transfer cryptocurrency automatically.</p>
-      <div id="withdrawalsList">Loading...</div>
-    </section>
-
-    <section id="tab-users" class="card hidden">
-      <h2>Users</h2>
-      <div id="usersList">Loading...</div>
-    </section>
-  </section>
+<section id="tab-claims" class="card hidden"><h2>Pending Task Submissions</h2><div id="claimsList">Loading...</div></section>
+<section id="tab-requests" class="card hidden"><h2>Paid Task Requests</h2><p class="muted">Check the transaction hash and verify payment in your wallet before approving. Approval publishes the submitted task.</p><div id="requestsList">Loading...</div></section>
+<section id="tab-withdrawals" class="card hidden"><h2>Withdrawal Requests</h2><p class="muted">Confirm that payment has actually been sent before approving a withdrawal.</p><div id="withdrawalsList">Loading...</div></section>
+<section id="tab-users" class="card hidden"><h2>Users</h2><div id="usersList">Loading...</div></section>
+</section>
 </main>
-
 <script>
-  let adminPassword = sessionStorage.getItem("taskpay_admin_password") || "";
-
-  async function api(path, options = {}) {
-    const response = await fetch("/api/admin" + path, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        "X-Admin-Password": adminPassword,
-        ...(options.headers || {})
-      }
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || "Request failed.");
-    return data;
-  }
-
-  function esc(value) {
-    return String(value ?? "").replace(/[&<>"']/g, c =>
-      ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  }
-
-  async function login() {
-    adminPassword = document.getElementById("password").value;
-    try {
-      await api("/overview");
-      sessionStorage.setItem("taskpay_admin_password", adminPassword);
-      document.getElementById("login").classList.add("hidden");
-      document.getElementById("panel").classList.remove("hidden");
-      await refreshAll();
-    } catch (error) {
-      document.getElementById("loginMessage").textContent = error.message;
-    }
-  }
-
-  function logout() {
-    sessionStorage.removeItem("taskpay_admin_password");
-    adminPassword = "";
-    location.reload();
-  }
-
-  function openTab(name, button) {
-    document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add("hidden"));
-    document.getElementById("tab-" + name).classList.remove("hidden");
-    document.querySelectorAll(".tabs button").forEach(el => el.classList.remove("active"));
-    button.classList.add("active");
-  }
-
-  async function refreshAll() {
-    const results = await Promise.all([
-      api("/overview"), api("/tasks"), api("/claims"),
-      api("/withdrawals"), api("/users")
-    ]);
-    const [stats, tasks, claims, withdrawals, users] = results;
-
-    document.getElementById("stats").innerHTML = [
-      ["Total Users", stats.users],
-      ["Active Tasks", stats.tasks],
-      ["Pending Submissions", stats.pendingClaims],
-      ["Pending Withdrawals", stats.pendingWithdrawals]
-    ].map(([label, value]) =>
-      `<div class="card stat">${label}<b>${Number(value)}</b></div>`
-    ).join("");
-
-    document.getElementById("tasksList").innerHTML = tasks.length ? tasks.map(t =>
-      `<div class="item">
-        <b>#${t.id} — ${esc(t.title)}</b>
-        <p class="muted">${esc(t.description)}<br>Reward: $${Number(t.reward).toFixed(3)} · ${t.active ? "Active" : "Inactive"}</p>
-        ${t.active ? `<button class="danger" onclick="deactivateTask(${t.id})">Remove Task</button>` : ""}
-      </div>`
-    ).join("") : "<p class='muted'>No tasks created yet.</p>";
-
-    document.getElementById("claimsList").innerHTML = claims.length ? claims.map(c =>
-      `<div class="item">
-        <b>Submission #${c.id}: ${esc(c.title)}</b>
-        <p class="muted">User ID: ${esc(c.telegram_id)}<br>Task ID: ${c.task_id}<br>Reward: $${Number(c.reward).toFixed(3)}<br>Proof: ${esc(c.proof || "Not provided")}<br>Submitted: ${esc(c.created_at)}</p>
-        <button onclick="reviewClaim(${c.id},'approve')">Approve</button>
-        <button class="danger" onclick="reviewClaim(${c.id},'reject')">Reject</button>
-      </div>`
-    ).join("") : "<p class='muted'>No pending submissions.</p>";
-
-    document.getElementById("withdrawalsList").innerHTML = withdrawals.length ? withdrawals.map(w =>
-      `<div class="item">
-        <b>Withdrawal #${w.id} — $${Number(w.amount).toFixed(3)}</b>
-        <p class="muted">User ID: ${esc(w.telegram_id)}<br>Binance ID: ${esc(w.binance_id)}<br>Status: ${esc(w.status)}<br>Requested: ${esc(w.created_at)}</p>
-        ${w.status === "pending" ? `
-          <button onclick="reviewWithdrawal(${w.id},'approve')">Accept</button>
-          <button class="danger" onclick="reviewWithdrawal(${w.id},'reject')">Reject</button>
-        ` : ""}
-      </div>`
-    ).join("") : "<p class='muted'>No withdrawals yet.</p>";
-
-    document.getElementById("usersList").innerHTML = users.length ? users.map(u =>
-      `<div class="item">
-        <b>${esc(u.first_name || u.username || "Telegram User")}</b>
-        <p class="muted">Telegram ID: ${esc(u.telegram_id)}<br>Username: ${esc(u.username || "-")}<br>Balance: $${Number(u.balance).toFixed(3)}<br>Total Earned: $${Number(u.total_earned).toFixed(3)}</p>
-      </div>`
-    ).join("") : "<p class='muted'>No users yet.</p>";
-  }
-
-  async function deactivateTask(id) {
-    if (!confirm("Remove this task from the active task list?")) return;
-    try {
-      await api("/tasks/" + id, { method: "POST", body: "{}" });
-      await refreshAll();
-    } catch (error) { alert(error.message); }
-  }
-
-  async function reviewClaim(id, action) {
-    if (!confirm(`${action === "approve" ? "Approve" : "Reject"} this task submission?`)) return;
-    try {
-      await api(`/claims/${id}/${action}`, { method: "POST", body: "{}" });
-      await refreshAll();
-    } catch (error) { alert(error.message); }
-  }
-
-  async function reviewWithdrawal(id, action) {
-    const warning = action === "approve"
-      ? "Confirm approval? Ensure payment has actually been sent before posting payment confirmation."
-      : "Reject this request and return its amount to the user's balance?";
-    if (!confirm(warning)) return;
-    try {
-      await api(`/withdrawals/${id}/${action}`, { method: "POST", body: "{}" });
-      await refreshAll();
-    } catch (error) { alert(error.message); }
-  }
-
-  document.getElementById("taskForm").addEventListener("submit", async event => {
-    event.preventDefault();
-    const form = new FormData(event.target);
-    const body = Object.fromEntries(form.entries());
-    body.reward = Number(body.reward);
-    try {
-      await api("/tasks", { method: "POST", body: JSON.stringify(body) });
-      document.getElementById("taskMessage").textContent = "Task added successfully.";
-      event.target.reset();
-      event.target.reward.value = "0.02";
-      await refreshAll();
-    } catch (error) {
-      document.getElementById("taskMessage").textContent = error.message;
-    }
-  });
-
-  if (adminPassword) {
-    document.getElementById("password").value = adminPassword;
-    login();
-  }
+let adminPassword=sessionStorage.getItem("taskpay_admin_password")||"";
+async function api(path,options={}){const r=await fetch("/api/admin"+path,{...options,headers:{"Content-Type":"application/json","X-Admin-Password":adminPassword,...(options.headers||{})}});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||"Request failed.");return d}
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+async function login(){adminPassword=document.getElementById("password").value;try{await api("/overview");sessionStorage.setItem("taskpay_admin_password",adminPassword);document.getElementById("login").classList.add("hidden");document.getElementById("panel").classList.remove("hidden");await refreshAll()}catch(e){document.getElementById("loginMessage").textContent=e.message}}
+function logout(){sessionStorage.removeItem("taskpay_admin_password");adminPassword="";location.reload()}
+function openTab(name,button){document.querySelectorAll('[id^="tab-"]').forEach(x=>x.classList.add("hidden"));document.getElementById("tab-"+name).classList.remove("hidden");document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));button.classList.add("active")}
+async function refreshAll(){try{const [s,t,c,r,w,u]=await Promise.all([api("/overview"),api("/tasks"),api("/claims"),api("/task-requests"),api("/withdrawals"),api("/users")]);renderStats(s);renderTasks(t);renderClaims(c);renderRequests(r);renderWithdrawals(w);renderUsers(u)}catch(e){alert(e.message)}}
+function renderStats(s){document.getElementById("stats").innerHTML=[["Total Users",s.users],["Active Tasks",s.tasks],["Pending Submissions",s.pendingClaims],["Pending Withdrawals",s.pendingWithdrawals],["Paid Task Requests",s.pendingTaskRequests]].map(([k,v])=>`<div class="card stat">${k}<b>${Number(v||0)}</b></div>`).join("")}
+function renderTasks(items){document.getElementById("tasksList").innerHTML=items.length?items.map(t=>`<div class="item"><b>#${t.id} — ${esc(t.title)}</b><p class="muted">${esc(t.description)}<br>URL: ${esc(t.url)}<br>Type: ${esc(t.task_type||"link")} · Chat ID: ${esc(t.chat_id||"-")}<br>Reward: $${Number(t.reward).toFixed(3)} · ${t.active?"Active":"Inactive"}</p>${t.active?`<button class="danger" onclick="deactivateTask(${t.id})">Remove Task</button>`:""}</div>`).join(""):"<p class='muted'>No tasks created yet.</p>"}
+function renderClaims(items){document.getElementById("claimsList").innerHTML=items.length?items.map(c=>`<div class="item"><b>Submission #${c.id}: ${esc(c.title)}</b><p class="muted">User ID: ${esc(c.telegram_id)}<br>Task ID: ${c.task_id}<br>Reward: $${Number(c.reward).toFixed(3)}<br>Proof: ${esc(c.proof||"Not provided")}<br>Submitted: ${esc(c.created_at)}</p><button onclick="reviewClaim(${c.id},'approve')">Approve</button><button class="danger" onclick="reviewClaim(${c.id},'reject')">Reject</button></div>`).join(""):"<p class='muted'>No pending submissions.</p>"}
+function renderRequests(items){document.getElementById("requestsList").innerHTML=items.length?items.map(r=>`<div class="item"><b>Request #${r.id} — ${esc(r.title)}</b><p class="muted">User ID: ${esc(r.telegram_id)}<br>Description: ${esc(r.description)}<br>Target: <a href="${esc(r.target_url)}" target="_blank" rel="noopener">${esc(r.target_url)}</a><br>Members: ${Number(r.member_count)}<br>Price: $${Number(r.price_usd).toFixed(2)} USDT<br>Tax ID: ${esc(r.tax_id)}<br>TXID: <span>${esc(r.payment_txid)}</span><br>Status: <span class="${r.status==="approved"?"green":r.status==="rejected"?"red":""}">${esc(r.status)}</span><br>Submitted: ${esc(r.created_at)}</p>${r.status==="pending_review"?`<button onclick="reviewRequest(${r.id},'approve')">Approve & Publish</button><button class="danger" onclick="reviewRequest(${r.id},'reject')">Reject</button>`:""}</div>`).join(""):"<p class='muted'>No task requests yet.</p>"}
+function renderWithdrawals(items){document.getElementById("withdrawalsList").innerHTML=items.length?items.map(w=>`<div class="item"><b>Withdrawal #${w.id} — $${Number(w.amount).toFixed(3)}</b><p class="muted">User ID: ${esc(w.telegram_id)}<br>Binance ID: ${esc(w.binance_id)}<br>Status: ${esc(w.status)}<br>Requested: ${esc(w.created_at)}</p>${w.status==="pending"?`<button onclick="reviewWithdrawal(${w.id},'approve')">Approve</button><button class="danger" onclick="reviewWithdrawal(${w.id},'reject')">Reject & Refund</button>`:""}</div>`).join(""):"<p class='muted'>No withdrawals yet.</p>"}
+function renderUsers(items){document.getElementById("usersList").innerHTML=items.length?items.map(u=>`<div class="item"><b>${esc(u.first_name||u.username||"Telegram User")}</b><p class="muted">Telegram ID: ${esc(u.telegram_id)}<br>Username: ${esc(u.username||"-")}<br>Balance: $${Number(u.balance).toFixed(3)}<br>Total Earned: $${Number(u.total_earned).toFixed(3)}<br>Referred by: ${esc(u.referred_by||"-")}</p></div>`).join(""):"<p class='muted'>No users yet.</p>"}
+async function action(path,question){if(!confirm(question))return;try{await api(path,{method:"POST",body:"{}"});await refreshAll()}catch(e){alert(e.message)}}
+function deactivateTask(id){return action("/tasks/"+id,"Remove this task from the active list?")}
+function reviewClaim(id,a){return action(`/claims/${id}/${a}`,`${a==="approve"?"Approve":"Reject"} this submission?`)}
+function reviewRequest(id,a){return action(`/task-requests/${id}/${a}`,a==="approve"?"Verify the payment has arrived and approve this request?":"Reject this task request?")}
+function reviewWithdrawal(id,a){return action(`/withdrawals/${id}/${a}`,a==="approve"?"Confirm that you have actually sent the withdrawal payment?":"Reject this withdrawal and refund the user?")}
+document.getElementById("taskForm").addEventListener("submit",async e=>{e.preventDefault();const form=new FormData(e.target),body=Object.fromEntries(form.entries());body.reward=Number(body.reward);try{await api("/tasks",{method:"POST",body:JSON.stringify(body)});document.getElementById("taskMessage").textContent="Task added successfully.";e.target.reset();e.target.reward.value="0.02";await refreshAll()}catch(err){document.getElementById("taskMessage").textContent=err.message}});
+if(adminPassword){document.getElementById("password").value=adminPassword;login()}
 </script>
 </body>
 </html>
