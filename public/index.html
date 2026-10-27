@@ -56,13 +56,13 @@ a{color:var(--gold);overflow-wrap:anywhere}.notice{background:#252018;border:1px
 </section>
 
 <section class="page" id="referrals">
-<div class="section-head"><h3>Invite & Earn</h3></div>
+<div class="section-head"><h3>Invited Friends</h3></div>
+<div class="card"><div style="font-size:30px">🔗</div><h3>Your Referral Link</h3><p class="muted">Share this link with friends. Copy it and send it to your friends to invite them to TaskPay.</p><input class="field" id="referralLink" readonly placeholder="Loading your referral link..."><button class="btn full" onclick="copyReferral()">📋 Copy Referral Link</button><button class="btn secondary full" onclick="shareReferral()">Share Referral Link</button></div>
 <div class="card"><div style="font-size:30px">👥</div><h3>Your Friends</h3><p class="muted">Track how many friends joined through your link and how much you earned from referrals.</p>
 <div class="referral-stats"><div class="referral-stat"><span>Total Friends</span><b id="friendsCount">0</b></div><div class="referral-stat"><span>Verified Friends</span><b id="verifiedFriends">0</b></div><div class="referral-stat"><span>Unverified Friends</span><b id="unverifiedFriends">0</b></div><div class="referral-stat"><span>Referral Earnings</span><b id="referralEarnings">$0.000</b></div></div>
 <p class="muted">A $0.010 referral bonus is added to your balance only after your friend completes at least one task and it is approved.</p>
 <div id="referredFriendsList" class="friend-list"><div class="empty">Your referred friends will appear here.</div></div>
-<label for="referralLink">Your Referral Link</label><input class="field" id="referralLink" readonly placeholder="Loading your link...">
-<button class="btn full" onclick="copyReferral()">Copy Referral Link</button><button class="btn secondary full" onclick="shareReferral()">Share Referral Link</button>
+
 </div>
 </section>
 
@@ -175,6 +175,7 @@ function showPage(id,button){
   (button||document.querySelector(`[data-page="${id}"]`))?.classList.add("active");
   if(id==="tasks")loadTasks();
   if(id==="wallet")refreshMe();
+  if(id==="referrals")refreshMe().catch(e=>console.error("Could not refresh referral data:",e));
 }
 
 async function refreshMe(){
@@ -258,8 +259,9 @@ async function claimDaily(){
 }
 
 function getReferralUrl(){
-  return document.getElementById("profileReferralLink")?.value ||
-    document.getElementById("referralLink")?.value || "";
+  const profileLink=document.getElementById("profileReferralLink")?.value?.trim()||"";
+  const friendsLink=document.getElementById("referralLink")?.value?.trim()||"";
+  return friendsLink || profileLink;
 }
 
 async function copyReferral(){
@@ -267,9 +269,10 @@ async function copyReferral(){
   if(!link){alert("Your referral link is still loading. Please try again.");return}
   try{await navigator.clipboard.writeText(link)}
   catch{
-    const i=document.getElementById("profileReferralLink");
-    const fallback=i?.value?i:document.getElementById("referralLink");
-    fallback.select();document.execCommand("copy");
+    const profileInput=document.getElementById("profileReferralLink");
+    const friendsInput=document.getElementById("referralLink");
+    const fallback=(friendsInput?.value?friendsInput:profileInput);
+    fallback.focus();fallback.select();fallback.setSelectionRange(0,99999);document.execCommand("copy");
   }
   alert("Referral link copied!");
 }
