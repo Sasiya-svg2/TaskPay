@@ -1,3 +1,4 @@
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -209,35 +210,8 @@ async function ensureUser(db, user, startParam, env) {
     referrer || null
   ).run();
 
-  if (referrer) {
-    const reward = 0.01;
-
-    await db.batch([
-      db.prepare(`
-        UPDATE users
-        SET balance = balance + ?,
-            total_earned = total_earned + ?
-        WHERE telegram_id = ?
-      `).bind(reward, reward, referrer),
-
-      db.prepare(`
-        INSERT INTO ledger
-          (telegram_id, amount, kind, reference)
-        VALUES (?, ?, 'referral_reward', ?)
-      `).bind(referrer, reward, id)
-    ]);
-
-    try {
-      await telegramRequest(env, "sendMessage", {
-        chat_id: referrer,
-        text:
-          `🎉 A new friend joined using your link. ` +
-          `Referral reward: $${reward.toFixed(3)}`
-      });
-    } catch (error) {
-      console.error("Referral notification failed:", error);
-    }
-  }
+  // Referral rewards are not paid at signup. They are awarded only after
+  // this referred user has at least one admin-approved task.
 
   return id;
 }
@@ -258,6 +232,64 @@ async function isMember(env, chatId, userId) {
     ["creator", "administrator", "member"].includes(member.status) ||
     (member.status === "restricted" && member.is_member === true)
   );
+}
+
+async function awardReferralReward(db, referredTelegramId, env) {
+  const referred = await db.prepare(`
+    SELECT referred_by, first_name
+    FROM users
+    WHERE telegram_id = ?
+  `).bind(String(referredTelegramId)).first();
+
+  const referrerId = referred?.referred_by ? String(referred.referred_by) : "";
+  if (!referrerId || referrerId === String(referredTelegramId)) return false;
+
+  const completed = await db.prepare(`
+    SELECT COUNT(*) AS count
+    FROM task_claims
+    WHERE telegram_id = ? AND status = 'approved'
+  `).bind(String(referredTelegramId)).first();
+  if (Number(completed?.count || 0) < 1) return false;
+
+  // A partial unique index makes the reward idempotent for each referred user.
+  try {
+    await db.prepare(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_referral_reward_once
+      ON ledger (telegram_id, reference)
+      WHERE kind = 'referral_reward'
+    `).run();
+  } catch (error) {
+    // Do not prevent task approval if an older database has conflicting rows.
+    console.error("Could not create referral reward index:", error);
+  }
+
+  const inserted = await db.prepare(`
+    INSERT INTO ledger (telegram_id, amount, kind, reference)
+    SELECT ?, 0.010, 'referral_reward', ?
+    WHERE NOT EXISTS (
+      SELECT 1 FROM ledger
+      WHERE telegram_id = ? AND kind = 'referral_reward' AND reference = ?
+    )
+  `).bind(referrerId, String(referredTelegramId), referrerId, String(referredTelegramId)).run();
+
+  if (!inserted.meta.changes) return false;
+
+  await db.prepare(`
+    UPDATE users
+    SET balance = balance + 0.010,
+        total_earned = total_earned + 0.010
+    WHERE telegram_id = ?
+  `).bind(referrerId).run();
+
+  try {
+    await telegramRequest(env, "sendMessage", {
+      chat_id: referrerId,
+      text: `🎉 Your friend ${referred.first_name || ""} completed their first approved task. You earned a $0.010 referral bonus!`
+    });
+  } catch (error) {
+    console.error("Referral reward notification failed:", error);
+  }
+  return true;
 }
 
 async function handleApi(request, env, url) {
@@ -461,6 +493,8 @@ async function handleApi(request, env, url) {
             String(id)
           )
         ]);
+
+        await awardReferralReward(db, claim.telegram_id, env);
       } else {
         const update = await db.prepare(`
           UPDATE task_claims
@@ -722,23 +756,50 @@ async function handleApi(request, env, url) {
       WHERE telegram_id = ?
     `).bind(telegramId).first();
 
-    const [referrals, completedTasks] = await Promise.all([
+    const [referrals, verifiedReferrals, completedTasks, referralEarnings, friends] = await Promise.all([
+      db.prepare(`SELECT COUNT(*) AS count FROM users WHERE referred_by = ?`).bind(telegramId).first(),
       db.prepare(`
-        SELECT COUNT(*) count
-        FROM users
-        WHERE referred_by = ?
+        SELECT COUNT(DISTINCT u.telegram_id) AS count
+        FROM users u
+        JOIN task_claims c ON c.telegram_id = u.telegram_id AND c.status = 'approved'
+        WHERE u.referred_by = ?
       `).bind(telegramId).first(),
       db.prepare(`
-        SELECT COUNT(*) count
-        FROM task_claims
+        SELECT COUNT(*) AS count FROM task_claims
         WHERE telegram_id = ? AND status = 'approved'
-      `).bind(telegramId).first()
+      `).bind(telegramId).first(),
+      db.prepare(`
+        SELECT COALESCE(SUM(amount), 0) AS total FROM ledger
+        WHERE telegram_id = ? AND kind = 'referral_reward'
+      `).bind(telegramId).first(),
+      db.prepare(`
+        SELECT u.telegram_id, u.username, u.first_name,
+          CASE WHEN EXISTS (
+            SELECT 1 FROM task_claims c
+            WHERE c.telegram_id = u.telegram_id AND c.status = 'approved'
+          ) THEN 'Verified' ELSE 'Unverified' END AS referral_status
+        FROM users u
+        WHERE u.referred_by = ?
+        ORDER BY u.telegram_id DESC
+        LIMIT 100
+      `).bind(telegramId).all()
     ]);
 
+    const totalReferrals = Number(referrals?.count || 0);
+    const verifiedCount = Number(verifiedReferrals?.count || 0);
     return json({
       ...me,
-      referrals: referrals.count,
-      completedTasks: completedTasks.count
+      referrals: totalReferrals,
+      verifiedReferrals: verifiedCount,
+      unverifiedReferrals: Math.max(0, totalReferrals - verifiedCount),
+      completedTasks: Number(completedTasks?.count || 0),
+      referralEarnings: Number(referralEarnings?.total || 0),
+      referredFriends: (friends.results || []).map(friend => ({
+        telegramId: friend.telegram_id,
+        username: friend.username || "",
+        firstName: friend.first_name || "Friend",
+        status: friend.referral_status
+      }))
     });
   }
 
@@ -887,6 +948,8 @@ async function handleApi(request, env, url) {
         String(taskId)
       )
     ]);
+
+    await awardReferralReward(db, telegramId, env);
 
     return json({
       ok: true,
