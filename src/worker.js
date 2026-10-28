@@ -366,10 +366,7 @@ async function handleApi(request, env, url) {
         body.task_type
       ) ? body.task_type : "link";
 
-      // The target channel/group is derived from the public Telegram URL.
-      // Admins do not need to enter a separate Channel ID or username.
-      const linkMatch = taskUrl.match(/^https?:\/\/(?:www\.)?t\.me\/([A-Za-z0-9_]{5,})\/?(?:\?.*)?$/i);
-      const chatId = linkMatch ? "@" + linkMatch[1] : "";
+      const chatId = String(body.chat_id || "").trim();
 
       if (
         !title ||
@@ -384,7 +381,13 @@ async function handleApi(request, env, url) {
       }
 
       if (taskType !== "link" && !chatId) {
-        return json({ error: "Use a public Telegram channel/group link (t.me/username) so membership can be checked without a Channel ID field." }, 400);
+        return json(
+          {
+            error:
+              "Enter the Telegram channel/group username or chat ID."
+          },
+          400
+        );
       }
 
       await db.prepare(`
@@ -400,21 +403,6 @@ async function handleApi(request, env, url) {
         chatId
       ).run();
 
-      // Notify all users who have started the bot; Telegram cannot message users who never opened it.
-      try {
-        const recipients = await db.prepare("SELECT telegram_id FROM users").all();
-        const botUsername = String(env.BOT_USERNAME || "task_v1_bot").replace(/^@/, "");
-        const openBotButton = [{ text: "OPEN BOT", url: `https://t.me/${botUsername}` }];
-        for (const recipient of (recipients.results || [])) {
-          try {
-            await telegramRequest(env, "sendMessage", {
-              chat_id: recipient.telegram_id,
-              text: `🌟 New Task Available 📣\n\n💰 COMPLETE AND EARN REWARD 🎉\n\n📌 ${title}\n💵 Reward: $${reward.toFixed(3)}\n\nOpen TaskPay to complete this task and claim your reward!`,
-              reply_markup: { inline_keyboard: [openBotButton] }
-            });
-          } catch (error) { console.error("Task broadcast failed for user", recipient.telegram_id, error); }
-        }
-      } catch (error) { console.error("Task broadcast list failed", error); }
       return json({ ok: true });
     }
 
@@ -731,6 +719,128 @@ async function handleApi(request, env, url) {
     return json({ error: "Admin route not found." }, 404);
   }
 
+  // ADSGRAM SERVER REWARD CALLBACK. This route intentionally runs before
+  // Telegram Mini App authentication because AdsGram does not send initData.
+  if (path === "/api/ads/reward" && method === "GET") {
+    const expectedSecret = String(env.ADSGRAM_REWARD_SECRET || "");
+    const suppliedSecret = String(url.searchParams.get("key") || "");
+    const callbackUserId = String(url.searchParams.get("userid") || "");
+
+    if (!expectedSecret || suppliedSecret !== expectedSecret) {
+      return json({ error: "Unauthorized callback." }, 401);
+    }
+    if (!/^\d{1,20}$/.test(callbackUserId)) {
+      return json({ error: "Invalid user ID." }, 400);
+    }
+
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS daily_ads (
+        telegram_id TEXT NOT NULL,
+        ad_date TEXT NOT NULL,
+        count INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (telegram_id, ad_date)
+      )
+    `).run();
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS ad_reward_sessions (
+        telegram_id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL UNIQUE,
+        started_at INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        rewarded_at INTEGER,
+        reward_token TEXT
+      )
+    `).run();
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS ad_reward_events (
+        session_id TEXT PRIMARY KEY,
+        telegram_id TEXT NOT NULL,
+        ad_date TEXT NOT NULL,
+        amount REAL NOT NULL,
+        created_at INTEGER NOT NULL,
+        reward_token TEXT NOT NULL UNIQUE
+      )
+    `).run();
+
+    const now = Date.now();
+    const today = new Date().toISOString().slice(0, 10);
+    const token = crypto.randomUUID();
+    const session = await db.prepare(`
+      SELECT session_id, started_at, status
+      FROM ad_reward_sessions WHERE telegram_id = ?
+    `).bind(callbackUserId).first();
+
+    if (!session || session.status !== "pending" ||
+        now < Number(session.started_at) ||
+        now - Number(session.started_at) > 10 * 60 * 1000) {
+      return json({ ok: true, rewarded: false, reason: "No valid pending ad session." });
+    }
+
+    // D1 batch runs atomically. A unique session/event and one-time pending->rewarded
+    // transition prevent replaying the same callback to earn a second reward.
+    await db.batch([
+      db.prepare(`
+        UPDATE ad_reward_sessions
+        SET status = 'rewarded', rewarded_at = ?, reward_token = ?
+        WHERE telegram_id = ? AND session_id = ? AND status = 'pending'
+          AND started_at <= ? AND started_at >= ?
+          AND NOT EXISTS (
+            SELECT 1 FROM daily_ads
+            WHERE telegram_id = ? AND ad_date = ? AND count >= 100
+          )
+      `).bind(now, token, callbackUserId, session.session_id, now,
+        now - 10 * 60 * 1000, callbackUserId, today),
+      db.prepare(`
+        INSERT OR IGNORE INTO ad_reward_events
+          (session_id, telegram_id, ad_date, amount, created_at, reward_token)
+        SELECT session_id, telegram_id, ?, 0.010, ?, ?
+        FROM ad_reward_sessions
+        WHERE telegram_id = ? AND session_id = ? AND status = 'rewarded'
+          AND reward_token = ? AND rewarded_at = ?
+          AND NOT EXISTS (
+            SELECT 1 FROM daily_ads
+            WHERE telegram_id = ? AND ad_date = ? AND count >= 100
+          )
+      `).bind(today, now, token, callbackUserId, session.session_id,
+        token, now, callbackUserId, today),
+      db.prepare(`
+        INSERT INTO daily_ads (telegram_id, ad_date, count)
+        SELECT telegram_id, ad_date, 1 FROM ad_reward_events
+        WHERE session_id = ? AND reward_token = ?
+        ON CONFLICT (telegram_id, ad_date)
+        DO UPDATE SET count = count + 1 WHERE count < 100
+      `).bind(session.session_id, token),
+      db.prepare(`
+        UPDATE users
+        SET balance = balance + 0.010,
+            total_earned = total_earned + 0.010
+        WHERE telegram_id = ? AND EXISTS (
+          SELECT 1 FROM ad_reward_events
+          WHERE session_id = ? AND reward_token = ?
+        )
+      `).bind(callbackUserId, session.session_id, token),
+      db.prepare(`
+        INSERT INTO ledger (telegram_id, amount, kind, reference)
+        SELECT ?, 0.010, 'ad_reward', ?
+        WHERE EXISTS (
+          SELECT 1 FROM ad_reward_events
+          WHERE session_id = ? AND reward_token = ?
+        )
+          AND NOT EXISTS (
+            SELECT 1 FROM ledger WHERE kind = 'ad_reward' AND reference = ?
+          )
+      `).bind(callbackUserId, session.session_id, session.session_id, token,
+        session.session_id)
+    ]);
+
+    const event = await db.prepare(`
+      SELECT session_id FROM ad_reward_events
+      WHERE session_id = ? AND reward_token = ?
+    `).bind(session.session_id, token).first();
+
+    return json({ ok: true, rewarded: Boolean(event) });
+  }
+
   // TELEGRAM USER AUTHENTICATION
   const auth = await getAuth(request, env);
   if (auth.error) return auth.error;
@@ -910,7 +1020,8 @@ async function handleApi(request, env, url) {
       return json(
         {
           error:
-            "Telegram could not check this channel/group. Make sure the task URL is a public t.me/username link and add the TaskPay bot as an administrator in that exact channel/group, then try Claim again."
+            "Could not verify membership. Check that the bot " +
+            "is an administrator in the channel/group and the chat ID is correct."
         },
         400
       );
@@ -969,34 +1080,83 @@ async function handleApi(request, env, url) {
     });
   }
 
-  // DAILY AD REWARDS (temporary demo mode until AdsGram is connected)
+  // DAILY ADSGRAM REWARDS. Client-side claim requests never credit a balance.
   if (["/api/ads/status", "/api/ads/start", "/api/ads/claim"].includes(path)) {
-    await db.prepare(`CREATE TABLE IF NOT EXISTS daily_ads (telegram_id TEXT NOT NULL, ad_date TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (telegram_id, ad_date))`).run();
-    await db.prepare(`CREATE TABLE IF NOT EXISTS ad_sessions (telegram_id TEXT PRIMARY KEY, started_at INTEGER NOT NULL)`).run();
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS daily_ads (
+        telegram_id TEXT NOT NULL,
+        ad_date TEXT NOT NULL,
+        count INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (telegram_id, ad_date)
+      )
+    `).run();
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS ad_reward_sessions (
+        telegram_id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL UNIQUE,
+        started_at INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        rewarded_at INTEGER,
+        reward_token TEXT
+      )
+    `).run();
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS ad_reward_events (
+        session_id TEXT PRIMARY KEY,
+        telegram_id TEXT NOT NULL,
+        ad_date TEXT NOT NULL,
+        amount REAL NOT NULL,
+        created_at INTEGER NOT NULL,
+        reward_token TEXT NOT NULL UNIQUE
+      )
+    `).run();
+
     const today = new Date().toISOString().slice(0, 10);
-    const row = await db.prepare("SELECT count FROM daily_ads WHERE telegram_id = ? AND ad_date = ?").bind(String(telegramId), today).first();
-    const count = Number(row?.count || 0);
+    const daily = await db.prepare(`
+      SELECT count FROM daily_ads WHERE telegram_id = ? AND ad_date = ?
+    `).bind(String(telegramId), today).first();
+    const count = Number(daily?.count || 0);
+
     if (path === "/api/ads/status" && method === "GET") {
-      const session = await db.prepare("SELECT started_at FROM ad_sessions WHERE telegram_id = ?").bind(String(telegramId)).first();
-      return json({ count, started: !!session && Date.now() - Number(session.started_at) >= 10000, rewardPerAd: 0.01, limit: 100 });
+      const session = await db.prepare(`
+        SELECT started_at, status FROM ad_reward_sessions WHERE telegram_id = ?
+      `).bind(String(telegramId)).first();
+      const pending = Boolean(session && session.status === "pending" &&
+        Date.now() >= Number(session.started_at) &&
+        Date.now() - Number(session.started_at) <= 10 * 60 * 1000);
+      return json({ count, started: pending, pending, rewardPerAd: 0.010, limit: 100 });
     }
+
     if (path === "/api/ads/start" && method === "POST") {
       if (count >= 100) return json({ error: "Come Again Tomorrow" }, 409);
-      await db.prepare("INSERT INTO ad_sessions (telegram_id, started_at) VALUES (?, ?) ON CONFLICT(telegram_id) DO UPDATE SET started_at = excluded.started_at").bind(String(telegramId), Date.now()).run();
-      return json({ ok: true, started: true });
+
+      const existing = await db.prepare(`
+        SELECT session_id, started_at, status
+        FROM ad_reward_sessions WHERE telegram_id = ?
+      `).bind(String(telegramId)).first();
+      if (existing && existing.status === "pending" &&
+          Date.now() >= Number(existing.started_at) &&
+          Date.now() - Number(existing.started_at) <= 10 * 60 * 1000) {
+        return json({ ok: true, started: true, pending: true });
+      }
+
+      await db.prepare(`
+        INSERT INTO ad_reward_sessions
+          (telegram_id, session_id, started_at, status, rewarded_at, reward_token)
+        VALUES (?, ?, ?, 'pending', NULL, NULL)
+        ON CONFLICT (telegram_id) DO UPDATE SET
+          session_id = excluded.session_id,
+          started_at = excluded.started_at,
+          status = 'pending', rewarded_at = NULL, reward_token = NULL
+      `).bind(String(telegramId), crypto.randomUUID(), Date.now()).run();
+      return json({ ok: true, started: true, pending: true });
     }
+
     if (path === "/api/ads/claim" && method === "POST") {
-      const session = await db.prepare("SELECT started_at FROM ad_sessions WHERE telegram_id = ?").bind(String(telegramId)).first();
-      if (!session || Date.now() - Number(session.started_at) < 10000) return json({ error: "Please complete the ad before claiming." }, 400);
-      if (count >= 100) return json({ error: "Come Again Tomorrow" }, 409);
-      const next = count + 1;
-      await db.batch([
-        db.prepare("INSERT INTO daily_ads (telegram_id, ad_date, count) VALUES (?, ?, 1) ON CONFLICT(telegram_id, ad_date) DO UPDATE SET count = count + 1").bind(String(telegramId), today),
-        db.prepare("UPDATE users SET balance = balance + 0.01, total_earned = total_earned + 0.01 WHERE telegram_id = ?").bind(String(telegramId)),
-        db.prepare("INSERT INTO ledger (telegram_id, amount, kind, reference) VALUES (?, 0.01, 'ad_reward', ?)").bind(String(telegramId), today + ":" + next),
-        db.prepare("DELETE FROM ad_sessions WHERE telegram_id = ?").bind(String(telegramId))
-      ]);
-      return json({ ok: true, count: next, reward: 0.01, started: false });
+      return json({
+        error: "Rewards are confirmed by the AdsGram server callback.",
+        pending: true
+      }, 409);
     }
   }
 
