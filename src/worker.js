@@ -719,18 +719,30 @@ async function handleApi(request, env, url) {
     return json({ error: "Admin route not found." }, 404);
   }
 
-  // ADSGRAM SERVER REWARD CALLBACK. This route intentionally runs before
-  // Telegram Mini App authentication because AdsGram does not send initData.
+  // ADSUN SERVER REWARD CALLBACK. This route runs before Telegram Mini App
+  // authentication because Adsun calls it server-to-server without initData.
   if (path === "/api/ads/reward" && method === "GET") {
-    const expectedSecret = String(env.ADSGRAM_REWARD_SECRET || "");
+    const expectedSecret = String(env.ADSUN_REWARD_SECRET || "");
     const suppliedSecret = String(url.searchParams.get("key") || "");
-    const callbackUserId = String(url.searchParams.get("userid") || "");
+    const callbackUserId = String(url.searchParams.get("userid") || url.searchParams.get("user") || "");
+    const callbackBlockId = String(url.searchParams.get("block") || url.searchParams.get("blockId") || "");
+    const callbackTimestamp = String(url.searchParams.get("timestamp") || "");
 
     if (!expectedSecret || suppliedSecret !== expectedSecret) {
       return json({ error: "Unauthorized callback." }, 401);
     }
     if (!/^\d{1,20}$/.test(callbackUserId)) {
       return json({ error: "Invalid user ID." }, 400);
+    }
+    if (callbackBlockId !== "56503") {
+      return json({ error: "Unexpected Adsun block ID." }, 400);
+    }
+    if (!/^\d{9,12}$/.test(callbackTimestamp)) {
+      return json({ error: "Invalid reward timestamp." }, 400);
+    }
+    const callbackTimeMs = Number(callbackTimestamp) * 1000;
+    if (!Number.isFinite(callbackTimeMs) || callbackTimeMs > Date.now() + 5 * 60 * 1000 || Date.now() - callbackTimeMs > 24 * 60 * 60 * 1000) {
+      return json({ error: "Expired reward callback." }, 400);
     }
 
     await db.prepare(`
@@ -772,7 +784,9 @@ async function handleApi(request, env, url) {
 
     if (!session || session.status !== "pending" ||
         now < Number(session.started_at) ||
-        now - Number(session.started_at) > 10 * 60 * 1000) {
+        now - Number(session.started_at) > 10 * 60 * 1000 ||
+        callbackTimeMs < Number(session.started_at) - 60 * 1000 ||
+        callbackTimeMs > Number(session.started_at) + 15 * 60 * 1000) {
       return json({ ok: true, rewarded: false, reason: "No valid pending ad session." });
     }
 
@@ -1080,7 +1094,7 @@ async function handleApi(request, env, url) {
     });
   }
 
-  // DAILY ADSGRAM REWARDS. Client-side claim requests never credit a balance.
+  // DAILY ADSUN REWARDS. Client-side requests never credit a balance.
   if (["/api/ads/status", "/api/ads/start", "/api/ads/claim"].includes(path)) {
     await db.prepare(`
       CREATE TABLE IF NOT EXISTS daily_ads (
@@ -1154,7 +1168,7 @@ async function handleApi(request, env, url) {
 
     if (path === "/api/ads/claim" && method === "POST") {
       return json({
-        error: "Rewards are confirmed by the AdsGram server callback.",
+        error: "Rewards are confirmed by the Adsun server callback.",
         pending: true
       }, 409);
     }
