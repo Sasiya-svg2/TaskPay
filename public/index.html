@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="theme-color" content="#080b16">
+<meta name="theme-color" content="#FFFFFF">
 <title>TaskPay</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://api.adsun.io/sdk.js"></script>
@@ -29,75 +29,75 @@ a{color:var(--gold);overflow-wrap:anywhere}.notice{background:#252018;border:1px
 .referral-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0 18px}.referral-stat{padding:15px 12px;border:1px solid #5b351d;border-radius:14px;background:#251b15;min-width:0}.referral-stat span{display:block;font-size:12px;color:#c9a58b}.referral-stat b{display:block;font-size:22px;color:#ffad60;margin-top:7px;overflow-wrap:anywhere}
 .ad-bars{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:5px;margin:16px 0}.ad-bar{height:10px;border-radius:4px;background:#352719;border:1px solid #5c351d}.ad-bar.filled{background:#ff8126;border-color:#ff8126}
 
-/* TaskPay Premium UI layer — visual-only overrides; app logic preserved */
+/* TaskPay Premium White + Orange visual layer — functionality preserved */
 :root{
- --bg:#080b16;--panel:#11182a;--panel2:#18223a;--orange:#8b7bff;--gold:#62e7ff;
- --text:#f5f7ff;--muted:#9ba8c7;--line:#293653;--green:#4be0a1;--red:#ff718b;
- color-scheme:dark;
+ --bg:#ffffff;--panel:#ffffff;--panel2:#fff7f2;--orange:#FF6A00;--gold:#FF6A00;
+ --text:#242424;--muted:#777777;--line:#f0e5dd;--green:#278553;--red:#cf3d32;
+ color-scheme:light;
 }
-html{background:var(--bg);scroll-behavior:smooth}
-body{
- background:radial-gradient(ellipse at 12% -5%,rgba(104,82,255,.22),transparent 38%),
- radial-gradient(ellipse at 100% 30%,rgba(44,190,255,.10),transparent 35%),var(--bg);
- font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
- letter-spacing:.01em; -webkit-font-smoothing:antialiased;
-}
+html{background:#fff;scroll-behavior:smooth}
+body{background:#fff;color:#242424;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.005em;-webkit-font-smoothing:antialiased}
 .app{padding-top:22px}
-header{padding:4px 2px 16px;border-bottom:1px solid rgba(137,158,213,.13)}
-.brand{font-size:27px;letter-spacing:-1.25px;background:linear-gradient(100deg,#fff 15%,#b8b3ff 52%,#67e7ff 95%);-webkit-background-clip:text;background-clip:text;color:transparent}
-.brand span{color:transparent;background:linear-gradient(100deg,#9d8cff,#62e7ff);-webkit-background-clip:text;background-clip:text}
-h2{letter-spacing:-.55px}
-.page.active{animation:premiumEnter .32s cubic-bezier(.2,.75,.25,1) both}
-@keyframes premiumEnter{from{opacity:0;transform:translateY(10px) scale(.995)}to{opacity:1;transform:translateY(0) scale(1)}}
-.balance{
- position:relative;isolation:isolate;overflow:hidden;padding:24px 22px;border-radius:25px;
- background:linear-gradient(130deg,#29245f 0%,#4334a5 48%,#176e91 100%);
- border:1px solid rgba(183,193,255,.28);box-shadow:0 18px 44px rgba(57,52,157,.25),inset 0 1px rgba(255,255,255,.15);
- animation:cardFloat 6s ease-in-out infinite;
-}
-.balance:before{content:"";position:absolute;z-index:-1;width:220px;height:220px;right:-70px;top:-100px;border-radius:50%;background:rgba(126,228,255,.17);filter:blur(3px)}
-.balance:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 25%,rgba(255,255,255,.09) 45%,transparent 62%);transform:translateX(-120%);animation:shine 8s ease-in-out infinite}
-@keyframes shine{0%,58%{transform:translateX(-120%)}78%,100%{transform:translateX(120%)}}
-@keyframes cardFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
-.balance .label{color:#e1e7ff}.amount{font-variant-numeric:tabular-nums;letter-spacing:-1.5px;text-shadow:0 2px 22px rgba(255,255,255,.12)}
-.stat{background:rgba(8,14,37,.25);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px)}
-.card{background:linear-gradient(145deg,rgba(20,29,51,.96),rgba(14,20,37,.96));border:1px solid rgba(134,157,214,.18);box-shadow:0 8px 24px rgba(0,0,0,.12);transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
-.feature{position:relative;overflow:hidden;min-height:130px;border-radius:19px}
-.feature:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(130deg,rgba(134,118,255,.09),transparent 58%);opacity:.7}
-.feature .icon{filter:drop-shadow(0 4px 12px rgba(111,126,255,.28));transform-origin:center;transition:transform .22s ease}
-@media(hover:hover){.card:hover{transform:translateY(-3px);border-color:rgba(126,207,255,.42);box-shadow:0 14px 28px rgba(0,0,0,.23)}.feature:hover .icon{transform:translateY(-2px) scale(1.08)}}
-.card:active,.btn:active,.profile-action:active,.nav button:active{transform:scale(.975)}
-.btn{background:linear-gradient(105deg,#a193ff,#66dfff);color:#0b1020;border:1px solid rgba(255,255,255,.16);border-radius:13px;box-shadow:0 7px 20px rgba(109,129,255,.18);transition:transform .16s ease,filter .16s ease,box-shadow .16s ease}
-.btn:hover{filter:brightness(1.06);box-shadow:0 9px 25px rgba(109,129,255,.27)}
-.btn.secondary{background:rgba(28,39,65,.92);border-color:rgba(137,158,213,.22);color:#eaf0ff;box-shadow:none}
-.field{background:#0b1120;border-color:#293653;border-radius:13px;transition:border-color .18s ease,box-shadow .18s ease}
-.field:focus{border-color:#8b9dff;box-shadow:0 0 0 3px rgba(139,123,255,.13);outline:none}
-.pill{background:rgba(139,123,255,.15);color:#c4bcff;border:1px solid rgba(139,123,255,.2)}
-.status{color:#80e9ff}.status.done{color:#4be0a1}.status.bad{color:#ff879d}
-.notice{background:rgba(39,45,81,.65);border-color:rgba(143,135,255,.26);color:#dce5ff}
-.message{color:#92eaff}
-.nav{background:rgba(9,14,29,.92);border-top:1px solid rgba(137,158,213,.2);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);padding-top:11px;box-shadow:0 -10px 35px rgba(0,0,0,.18)}
-.nav button{transition:color .18s ease,transform .18s ease;color:#8290b1}.nav button span{transition:transform .18s ease}.nav button.active{color:#a89cff}.nav button.active span{filter:drop-shadow(0 0 9px rgba(139,123,255,.45));transform:translateY(-2px)}
-.loading{background:radial-gradient(ellipse at 50% 40%,rgba(81,74,195,.22),transparent 42%),#080b16}
-.logo{background:linear-gradient(140deg,#a99bff,#62e7ff);color:#0b1020;box-shadow:0 12px 40px rgba(110,127,255,.24);animation:logoPulse 1.8s ease-in-out infinite}
-@keyframes logoPulse{0%,100%{transform:translateY(0) scale(1);box-shadow:0 12px 40px rgba(110,127,255,.2)}50%{transform:translateY(-5px) scale(1.035);box-shadow:0 18px 50px rgba(110,127,255,.35)}}
-.spinner{border-color:rgba(146,162,210,.2);border-top-color:#8b7bff}
-.profile-avatar,.profile-action .action-icon{background:linear-gradient(135deg,#a99bff,#62e7ff);color:#0b1020}
-.profile-stat,.referral-stat{background:linear-gradient(145deg,rgba(31,37,69,.9),rgba(15,22,40,.95));border-color:rgba(137,158,213,.19)}
-.profile-stat span,.referral-stat span{color:#a8b5d4}.profile-stat b,.referral-stat b{color:#aeeeff}
-.profile-action{background:linear-gradient(110deg,rgba(36,35,79,.8),rgba(17,26,46,.9));border-color:rgba(137,158,213,.2);transition:transform .18s ease,border-color .18s ease}
-.profile-action .action-copy span{color:#a8b5d4}.profile-action .arrow{color:#83eaff}
-.friend-row{background:rgba(18,27,47,.9);border-color:rgba(137,158,213,.18)}
-.friend-status.verified{background:rgba(28,111,79,.23);color:#6ff0b2}.friend-status.unverified{background:rgba(132,95,29,.25);color:#ffda8e}
-.ad-bar{background:#222c48;border-color:#354265}.ad-bar.filled{background:linear-gradient(90deg,#8b7bff,#62e7ff);border-color:#8b9dff}
-a{color:#7fe8ff}
+header{padding:4px 2px 16px;border-bottom:1px solid #f5e8df}
+.brand{font-size:27px;letter-spacing:-1.25px;color:#242424}
+.brand span{color:#FF6A00}
+h2{letter-spacing:-.45px}
+.page.active{animation:premiumEnter .3s ease both}
+@keyframes premiumEnter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.balance{position:relative;isolation:isolate;overflow:hidden;padding:24px 22px;border-radius:25px;background:linear-gradient(135deg,#fff0e5 0%,#ffffff 68%);border:1px solid #ffe0cc;color:#252525;box-shadow:0 12px 30px rgba(255,106,0,.10);animation:cardFloat 5s ease-in-out infinite}
+.balance:before{content:"$";position:absolute;z-index:-1;right:20px;top:18px;width:62px;height:62px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#ff8a35,#FF6A00);color:white;font-weight:900;font-size:30px;box-shadow:inset 0 3px 4px rgba(255,255,255,.45),0 8px 18px rgba(255,106,0,.22);animation:coinFloat 2.5s ease-in-out infinite}
+@keyframes coinFloat{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-7px) rotate(5deg)}}
+@keyframes cardFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-1px)}}
+.balance:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 25%,rgba(255,106,0,.06) 48%,transparent 68%);transform:translateX(-120%);animation:shine 7s ease-in-out infinite}
+@keyframes shine{0%,65%{transform:translateX(-120%)}85%,100%{transform:translateX(120%)}}
+.balance .label{color:#7b4a2c}.amount{font-variant-numeric:tabular-nums;letter-spacing:-1.5px;color:#252525;text-shadow:none}
+.stats{gap:10px}.stat{background:#fff;border:1px solid #f5e4d8;color:#777}.stat b{color:#FF6A00}
+.card{background:#fff;border:1px solid #f2e7df;box-shadow:0 8px 24px rgba(61,36,18,.07);transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+.feature{position:relative;overflow:hidden;min-height:132px;border-radius:19px;color:#292929}
+.feature:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(130deg,rgba(255,106,0,.055),transparent 65%)}
+.feature .icon{filter:drop-shadow(0 5px 7px rgba(255,106,0,.18));transform-origin:center;transition:transform .22s ease}
+.feature b{color:#282828}.feature span{color:#777}
+@media(hover:hover){.card:hover{transform:translateY(-3px);border-color:#ffd0b0;box-shadow:0 14px 28px rgba(255,106,0,.10)}.feature:hover .icon{transform:translateY(-2px) scale(1.08)}}
+.card:active,.btn:active,.profile-action:active,.nav button:active{transform:scale(.98)}
+.btn{background:#FF6A00;color:#fff;border:1px solid #FF6A00;border-radius:13px;box-shadow:0 7px 18px rgba(255,106,0,.16);transition:transform .16s ease,filter .16s ease,box-shadow .16s ease}
+.btn:hover{filter:brightness(1.03);box-shadow:0 9px 22px rgba(255,106,0,.22)}
+.btn.secondary{background:#fff;border-color:#FF6A00;color:#FF6A00;box-shadow:none}
+.field{background:#fff;border-color:#eadfd7;color:#242424;border-radius:13px;transition:border-color .18s ease,box-shadow .18s ease}
+.field:focus{border-color:#FF6A00;box-shadow:0 0 0 3px rgba(255,106,0,.12);outline:none}
+.pill{background:#fff0e5;color:#c65300;border:1px solid #ffdec8}
+.status{color:#c65300}.status.done{color:#278553}.status.bad{color:#cf3d32}
+.notice{background:#fff5ee;border-color:#ffdcc5;color:#7b4a2c}
+.message{color:#c65300}
+.nav{background:rgba(255,255,255,.96);border-top:1px solid #f0e5dd;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);padding-top:11px;box-shadow:0 -8px 24px rgba(61,36,18,.05)}
+.nav button{transition:color .18s ease,transform .18s ease;color:#999}.nav button span{transition:transform .18s ease}.nav button.active{color:#FF6A00}.nav button.active span{filter:drop-shadow(0 0 8px rgba(255,106,0,.22));transform:translateY(-2px)}
+.loading{background:#fff;transition:opacity .3s;gap:0}
+.loader-brand{font-size:34px;font-weight:900;letter-spacing:-1.5px;color:#242424;opacity:0;transform:scale(.92);animation:logoAppear .65s cubic-bezier(.2,.8,.2,1) .08s forwards}
+.loader-brand span{color:#FF6A00}
+.loader-caption{margin-top:8px;font-size:12px;color:#888;opacity:0;animation:fadeCaption .4s ease .35s forwards}
+@keyframes logoAppear{to{opacity:1;transform:scale(1)}}
+@keyframes fadeCaption{to{opacity:1}}
+.loader-track{width:164px;height:4px;margin-top:26px;background:#f2e8e1;border-radius:999px;overflow:hidden}
+.loader-track span{display:block;width:0;height:100%;border-radius:999px;background:#FF6A00;box-shadow:0 0 10px rgba(255,106,0,.28);animation:loaderProgress 2s ease forwards}
+@keyframes loaderProgress{to{width:100%}}
+.profile-avatar,.profile-action .action-icon{background:linear-gradient(135deg,#ff9a52,#FF6A00);color:#fff}
+.profile-stat,.referral-stat{background:#fff8f3;border-color:#f5e1d3}
+.profile-stat span,.referral-stat span{color:#8b7769}.profile-stat b,.referral-stat b{color:#FF6A00}
+.profile-action{background:#fff;border-color:#f1dfd2;transition:transform .18s ease,border-color .18s ease;color:#292929}
+.profile-action .action-copy span{color:#777}.profile-action .arrow{color:#FF6A00}
+.friend-row{background:#fff;border-color:#f0e2d8}
+.friend-status.verified{background:#eaf7ef;color:#278553}.friend-status.unverified{background:#fff0df;color:#a85a00}
+.ad-bar{background:#fff0e5;border-color:#ffdec8}.ad-bar.filled{background:#FF6A00;border-color:#FF6A00}
+a{color:#d95600}
 @media(max-width:360px){.app{padding-left:11px;padding-right:11px}.balance{padding:20px 17px}.amount{font-size:33px}.nav button{min-width:43px;font-size:9px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
-
 </style>
 </head>
 <body>
-<div class="loading" id="loading"><div class="logo">T</div><h2>Task<span style="color:#ff8126">Pay</span></h2><div class="muted">Small tasks. Real rewards.</div><div class="spinner"></div></div>
+<div class="loading" id="loading">
+  <div class="loader-brand">Task<span>Pay</span></div>
+  <div class="loader-caption">Small tasks. Real rewards.</div>
+  <div class="loader-track"><span id="loaderProgress"></span></div>
+</div>
 
 <main class="app">
 <header><div class="brand">Task<span>Pay</span></div></header>
@@ -532,6 +532,7 @@ async function withdraw(){
 }
 
 /* Improved launch diagnostics */
+const appLaunchStartedAt = Date.now();
 async function start(){
   const loading=document.getElementById("loading");
 
@@ -555,6 +556,8 @@ async function start(){
     document.getElementById("paymentAddress").value=config.usdtAddress||"";
     await refreshMe();
     await loadTasks();
+    const elapsed = Date.now() - appLaunchStartedAt;
+    if (elapsed < 2000) await new Promise(resolve => setTimeout(resolve, 2000 - elapsed));
     loading.style.opacity="0";
     setTimeout(()=>loading.remove(),350);
   }catch(e){
