@@ -151,10 +151,11 @@ tg?.ready();
 tg?.expand();
 
 const API="/api";
-const ADSUN_REWARDED_BLOCK_ID="56503";
+const ADSUN_REWARDED_BLOCK_ID="50075";
+const ADSUN_INTERSTITIAL_BLOCK_ID="50074";
 const AD_REWARD=0.010;
 const DAILY_AD_LIMIT=100;
-let rewardedController=null,adInProgress=false;
+let rewardedController=null,interstitialController=null,adInProgress=false,interstitialInProgress=false;
 const telegramUser=tg?.initDataUnsafe?.user;
 const initData=tg?.initData||"";
 
@@ -197,6 +198,7 @@ function showPage(id,button){
   (button||document.querySelector(`[data-page="${id}"]`))?.classList.add("active");
   if(id==="tasks")loadTasks();
   if(id==="ads")refreshAds();
+  if(id==="referrals")refreshMe().catch(e=>console.error("Could not refresh referral details:",e));
   if(id==="wallet")refreshMe();
 }
 
@@ -222,7 +224,7 @@ async function refreshMe(){
     friendList.innerHTML=friends.length?friends.map(friend=>{
       const safeName=escapeText(friend.firstName||"Friend");
       const safeHandle=friend.username?"@"+escapeText(friend.username):"Telegram user";
-      const verified=friend.status==="Verified";
+      const verified=String(friend.status||"").toLowerCase()==="verified";
       return `<div class="friend-row"><div><div class="friend-name">${safeName}</div><div class="friend-handle">${safeHandle}</div></div><span class="friend-status ${verified?"verified":"unverified"}">${verified?"Verified":"Unverified"}</span></div>`;
     }).join(""): '<div class="empty">No friends have joined with your referral link yet.</div>';
   }
@@ -276,6 +278,32 @@ function getAdsunRewardController(){
   return rewardedController;
 }
 
+function getAdsunInterstitialController(){
+  if(!window.Adsun||typeof window.Adsun.init!=="function")throw new Error("Adsun SDK is unavailable. Reload TaskPay and try again.");
+  if(!interstitialController)interstitialController=window.Adsun.init({blockId:ADSUN_INTERSTITIAL_BLOCK_ID});
+  return interstitialController;
+}
+
+async function showInterstitialAd(){
+  if(interstitialInProgress)return;
+  const button=document.getElementById("interstitialButton");
+  const message=document.getElementById("interstitialMessage");
+  interstitialInProgress=true;
+  if(button){button.disabled=true;button.textContent="PLEASE WAIT...";}
+  if(message)message.textContent="Loading Adsun interstitial ad...";
+  try{
+    await getAdsunInterstitialController().show();
+    if(message)message.textContent="Interstitial ad closed. No reward is given for this ad.";
+  }catch(e){
+    console.error("Adsun interstitial ad error:",e);
+    const detail=String(e?.description||e?.message||"").trim();
+    if(message)message.textContent=detail?`Interstitial ad unavailable: ${detail}`:"Interstitial ad was skipped or is unavailable. Please try again later.";
+  }finally{
+    interstitialInProgress=false;
+    if(button){button.disabled=false;button.textContent="WATCH INTERSTITIAL";}
+  }
+}
+
 async function refreshAds(){
   try{renderAds(await api("/ads/status"));}
   catch(e){const m=document.getElementById("adMessage");if(m)m.textContent=e.message;}
@@ -321,7 +349,11 @@ async function startAd(){
       if(message)message.textContent="Ad completed, but server confirmation has not arrived yet. Check again shortly; do not replay the ad immediately.";
       await refreshAds();
     }
-  }catch(e){console.error("Adsun rewarded ad error:",e);if(message)message.textContent="Ad failed or was skipped. No reward was claimed.";}
+  }catch(e){
+    console.error("Adsun rewarded ad error:",e);
+    const detail=String(e?.description||e?.message||"").trim();
+    if(message)message.textContent=detail?`Ad could not start: ${detail}. No reward was claimed.`:"Ad failed or was skipped. No reward was claimed.";
+  }
   finally{adInProgress=false;await refreshAds();}
 }
 
