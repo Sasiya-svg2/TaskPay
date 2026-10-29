@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#101010">
 <title>TaskPay</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+<script src="https://api.adsun.io/sdk.js"></script>
 <style>
 :root{--bg:#101010;--panel:#1a1a1a;--panel2:#222;--orange:#ff8126;--gold:#ffb347;--text:#f7f7f7;--muted:#a4a4a4;--line:#303030;--green:#35c982;--red:#ff6262}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif;padding-bottom:85px}
@@ -151,11 +151,10 @@ tg?.ready();
 tg?.expand();
 
 const API="/api";
-const ADSGRAM_REWARDED_BLOCK_ID="50075";
-const ADSGRAM_INTERSTITIAL_BLOCK_ID="50074";
+const ADSUN_REWARDED_BLOCK_ID="56503";
 const AD_REWARD=0.010;
 const DAILY_AD_LIMIT=100;
-let rewardedController=null,interstitialController=null,adInProgress=false;
+let rewardedController=null,adInProgress=false;
 const telegramUser=tg?.initDataUnsafe?.user;
 const initData=tg?.initData||"";
 
@@ -271,14 +270,10 @@ async function claimTask(taskId,autoVerify){
   }catch(e){alert(e.message)}
 }
 
-function getAdsgramController(blockId,kind){
-  if(!window.Adsgram||typeof window.Adsgram.init!=="function")throw new Error("AdsGram SDK is unavailable. Reload TaskPay and try again.");
-  if(kind==="rewarded"){
-    if(!rewardedController)rewardedController=window.Adsgram.init({blockId:ADSGRAM_REWARDED_BLOCK_ID});
-    return rewardedController;
-  }
-  if(!interstitialController)interstitialController=window.Adsgram.init({blockId:ADSGRAM_INTERSTITIAL_BLOCK_ID});
-  return interstitialController;
+function getAdsunRewardController(){
+  if(!window.Adsun||typeof window.Adsun.init!=="function")throw new Error("Adsun SDK is unavailable. Reload TaskPay and try again.");
+  if(!rewardedController)rewardedController=window.Adsun.init({blockId:ADSUN_REWARDED_BLOCK_ID});
+  return rewardedController;
 }
 
 async function refreshAds(){
@@ -297,7 +292,7 @@ function renderAds(data){
   if(earnings)earnings.textContent=money(count*AD_REWARD);
   if(bars)bars.innerHTML=Array.from({length:DAILY_AD_LIMIT},(_,i)=>`<span class="ad-bar ${i<count?"filled":""}"></span>`).join("");
   if(button){button.disabled=adInProgress||count>=DAILY_AD_LIMIT;button.textContent=count>=DAILY_AD_LIMIT?"COME AGAIN TOMORROW":adInProgress?"PLEASE WAIT...":"WATCH REWARDED AD";}
-  if(message&&count<DAILY_AD_LIMIT&&!adInProgress)message.textContent="Complete a rewarded ad. The server confirms your reward; client-side completion alone does not credit your balance.";
+  if(message&&count<DAILY_AD_LIMIT&&!adInProgress)message.textContent="Complete an Adsun rewarded ad. Your reward is credited only after secure server confirmation.";
   if(message&&count>=DAILY_AD_LIMIT)message.textContent="You have reached today's limit. Come back tomorrow.";
 }
 
@@ -309,10 +304,10 @@ async function startAd(){
     const before=await api("/ads/status");
     if(Number(before.count||0)>=DAILY_AD_LIMIT){renderAds(before);return;}
     await api("/ads/start",{method:"POST",body:"{}"});
-    if(message)message.textContent="Please watch the rewarded ad until it finishes.";
-    const result=await getAdsgramController(ADSGRAM_REWARDED_BLOCK_ID,"rewarded").show();
+    if(message)message.textContent="Please watch the Adsun rewarded ad until it finishes.";
+    const result=await getAdsunRewardController().show();
     if(!result||result.done!==true||result.error===true){if(message)message.textContent="Ad was not completed. No reward was claimed.";return;}
-    if(message)message.textContent="Ad completed. Waiting for secure server confirmation...";
+    if(message)message.textContent="Ad completed. Waiting for Adsun server confirmation...";
     let confirmed=null;
     for(let i=0;i<10;i++){
       await new Promise(resolve=>setTimeout(resolve,1000));
@@ -320,28 +315,16 @@ async function startAd(){
       if(Number(current.count||0)>Number(before.count||0)){confirmed=current;break;}
     }
     if(confirmed){
-      if(message)message.textContent="Reward confirmed by server: $0.010 added.";
+      if(message)message.textContent="Reward confirmed by Adsun server: $0.010 added.";
       await refreshMe();renderAds(confirmed);
     }else{
       if(message)message.textContent="Ad completed, but server confirmation has not arrived yet. Check again shortly; do not replay the ad immediately.";
       await refreshAds();
     }
-  }catch(e){console.error("Rewarded ad error:",e);if(message)message.textContent="Ad failed or was skipped. No reward was claimed.";}
+  }catch(e){console.error("Adsun rewarded ad error:",e);if(message)message.textContent="Ad failed or was skipped. No reward was claimed.";}
   finally{adInProgress=false;await refreshAds();}
 }
 
-async function showInterstitialAd(){
-  const button=document.getElementById("interstitialButton");
-  const message=document.getElementById("interstitialMessage");
-  if(button)button.disabled=true;
-  if(message)message.textContent="Loading interstitial ad...";
-  try{
-    const result=await getAdsgramController(ADSGRAM_INTERSTITIAL_BLOCK_ID,"interstitial").show();
-    if(result&&result.error!==true){if(message)message.textContent="Interstitial finished. No reward is given for this ad.";}
-    else if(message)message.textContent="Interstitial was not completed. No reward was given.";
-  }catch(e){console.error("Interstitial ad error:",e);if(message)message.textContent="Interstitial ad is unavailable right now. No reward was given.";}
-  finally{if(button)button.disabled=false;}
-}
 
 async function claimDaily(){
   const b=document.getElementById("dailyButton");
