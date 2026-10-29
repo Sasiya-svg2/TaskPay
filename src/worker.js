@@ -734,7 +734,7 @@ async function handleApi(request, env, url) {
     if (!/^\d{1,20}$/.test(callbackUserId)) {
       return json({ error: "Invalid user ID." }, 400);
     }
-    if (callbackBlockId !== "56503") {
+    if (callbackBlockId !== "50075") {
       return json({ error: "Unexpected Adsun block ID." }, 400);
     }
     if (!/^\d{9,12}$/.test(callbackTimestamp)) {
